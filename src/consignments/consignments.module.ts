@@ -1,15 +1,18 @@
 // dir: ~/quangminh-smart-border/backend/src/consignments/consignments.module.ts
 import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm'; // Import TypeOrmModule
-import { Consignment } from './entities/consignment.entity'; // Import Consignment entity
-import { TrackingEvent } from './entities/tracking-event.entity'; // Import TrackingEvent entity
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { Consignment } from './entities/consignment.entity';
+import { TrackingEvent } from './entities/tracking-event.entity';
+import { ConsignmentsService } from './consignments.service';
+import { AiEtaService } from './ai-eta.service';
+import { ConsignmentsController } from './consignments.controller'; // Import controller
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Consignment, TrackingEvent]), // Đăng ký các entity
+    TypeOrmModule.forFeature([Consignment, TrackingEvent]),
   ],
-  providers: [], // Sẽ thêm ConsignmentsService sau
-  controllers: [], // Sẽ thêm ConsignmentsController sau
-  exports: [TypeOrmModule], // Để các module khác có thể sử dụng các entity này nếu cần
+  providers: [ConsignmentsService, AiEtaService],
+  controllers: [ConsignmentsController], // Đăng ký controller
+  exports: [TypeOrmModule, ConsignmentsService],
 })
 export class ConsignmentsModule {}
