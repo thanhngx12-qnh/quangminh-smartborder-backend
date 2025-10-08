@@ -11,30 +11,37 @@ import {
   HttpCode,
   HttpStatus,
   ParseIntPipe,
+  UseGuards, // <-- Thêm import UseGuards
 } from '@nestjs/common';
 import { ServicesService } from './services.service';
 import { CreateServiceDto } from './dto/create-service.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
 import { Service } from './entities/service.entity';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';     // <-- Import JwtAuthGuard
+import { RolesGuard } from 'src/auth/guards/roles.guard';         // <-- Import RolesGuard
+import { Roles } from 'src/auth/decorators/roles.decorator';      // <-- Import Roles decorator
+import { UserRole } from 'src/users/entities/user.entity';        // <-- Import UserRole enum
 
-@Controller('services') // Base route cho tất cả các endpoint trong controller này là /services
+@Controller('services')
 export class ServicesController {
   constructor(private readonly servicesService: ServicesService) {}
 
   /**
    * @route POST /services
-   * @description Tạo một dịch vụ mới cùng với các bản dịch.
+   * @description Tạo dịch vụ mới (Yêu cầu quyền ADMIN hoặc CONTENT_MANAGER).
    * @param createServiceDto Dữ liệu dịch vụ và bản dịch từ request body.
    * @returns Dịch vụ đã tạo.
    */
   @Post()
-  @HttpCode(HttpStatus.CREATED) // Trả về mã 201 Created
+  @UseGuards(JwtAuthGuard, RolesGuard) // Áp dụng cả hai Guard
+  @Roles(UserRole.ADMIN, UserRole.CONTENT_MANAGER) // Chỉ định các vai trò được phép
+  @HttpCode(HttpStatus.CREATED)
   async create(@Body() createServiceDto: CreateServiceDto): Promise<Service> {
     return this.servicesService.create(createServiceDto);
   }
 
   /**
-   * @route GET /services
+   * @route GET /services (Công khai)
    * @description Lấy danh sách tất cả dịch vụ.
    * @param locale (Query parameter, tùy chọn) Lọc bản dịch theo ngôn ngữ.
    * @param featured (Query parameter, tùy chọn) Lọc dịch vụ nổi bật (true/false).
@@ -44,18 +51,17 @@ export class ServicesController {
   @HttpCode(HttpStatus.OK)
   async findAll(
     @Query('locale') locale?: string,
-    @Query('featured') featured?: string, // Query params luôn là string, cần parse
+    @Query('featured') featured?: string,
   ): Promise<Service[]> {
     let featuredBoolean: boolean | undefined;
     if (featured !== undefined) {
-      // Chuyển đổi string 'true'/'false' thành boolean
       featuredBoolean = featured.toLowerCase() === 'true';
     }
     return this.servicesService.findAll(locale, featuredBoolean);
   }
 
   /**
-   * @route GET /services/:id
+   * @route GET /services/:id (Công khai)
    * @description Lấy chi tiết một dịch vụ theo ID.
    * @param id ID của dịch vụ.
    * @param locale (Query parameter, tùy chọn) Lọc bản dịch theo ngôn ngữ.
@@ -64,20 +70,20 @@ export class ServicesController {
   @Get(':id')
   @HttpCode(HttpStatus.OK)
   async findOne(
-    @Param('id', ParseIntPipe) id: number, // ParseIntPipe tự động chuyển đổi string param thành number
+    @Param('id', ParseIntPipe) id: number,
     @Query('locale') locale?: string,
   ): Promise<Service> {
     return this.servicesService.findOne(id, locale);
   }
 
   /**
-   * @route GET /services/slug/:locale/:slug
+   * @route GET /services/slug/:locale/:slug (Công khai)
    * @description Lấy chi tiết một dịch vụ theo slug và ngôn ngữ.
    * @param locale Ngôn ngữ của bản dịch.
    * @param slug Slug của dịch vụ.
    * @returns Dịch vụ tìm thấy.
    */
-  @Get('slug/:locale/:slug') // Route riêng biệt để tránh xung đột với :id
+  @Get('slug/:locale/:slug')
   @HttpCode(HttpStatus.OK)
   async findOneBySlug(
     @Param('locale') locale: string,
@@ -88,12 +94,14 @@ export class ServicesController {
 
   /**
    * @route PATCH /services/:id
-   * @description Cập nhật thông tin và/hoặc bản dịch của một dịch vụ.
+   * @description Cập nhật dịch vụ (Yêu cầu quyền ADMIN hoặc CONTENT_MANAGER).
    * @param id ID của dịch vụ cần cập nhật.
    * @param updateServiceDto Dữ liệu cập nhật từ request body.
    * @returns Dịch vụ đã cập nhật.
    */
   @Patch(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.CONTENT_MANAGER)
   @HttpCode(HttpStatus.OK)
   async update(
     @Param('id', ParseIntPipe) id: number,
@@ -104,11 +112,13 @@ export class ServicesController {
 
   /**
    * @route DELETE /services/:id
-   * @description Xóa một dịch vụ theo ID.
+   * @description Xóa dịch vụ (Chỉ yêu cầu quyền ADMIN).
    * @param id ID của dịch vụ cần xóa.
    */
   @Delete(':id')
-  @HttpCode(HttpStatus.NO_CONTENT) // Trả về mã 204 No Content cho thao tác xóa thành công
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN) // Chỉ ADMIN mới có quyền xóa
+  @HttpCode(HttpStatus.NO_CONTENT)
   async remove(@Param('id', ParseIntPipe) id: number): Promise<void> {
     await this.servicesService.remove(id);
   }

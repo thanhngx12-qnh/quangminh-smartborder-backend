@@ -3,15 +3,15 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Service } from './entities/service.entity';
 import { ServiceTranslation } from './entities/service-translation.entity';
-import { ServicesService } from './services.service'; // Đã được thêm tự động
-import { ServicesController } from './services.controller';
+import { ServicesService } from './services.service';
+import { ServicesController } from './services.controller'; // Đã được thêm tự động
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Service, ServiceTranslation]),
   ],
-  providers: [ServicesService], // Đã được thêm tự động
-  controllers: [ServicesController], // Sẽ thêm ServiceController sau
-  exports: [TypeOrmModule, ServicesService], // Export ServicesService để các module khác có thể sử dụng
+  controllers: [ServicesController], // Đã được thêm tự động
+  providers: [ServicesService],
+  exports: [TypeOrmModule, ServicesService],
 })
 export class ServicesModule {}
