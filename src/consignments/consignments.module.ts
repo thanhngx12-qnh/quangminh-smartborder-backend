@@ -15,4 +15,4 @@ import { ConsignmentsController } from './consignments.controller'; // Import co
   controllers: [ConsignmentsController], // Đăng ký controller
   exports: [TypeOrmModule, ConsignmentsService],
 })
-export class ConsignmentsModule {}
+export class ConsignmentsModule {}  

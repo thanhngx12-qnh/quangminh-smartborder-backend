@@ -1,0 +1,13 @@
+# dir: ~/quangminh-smart-border/backend/.dockerignore
+
+# Các dependencies, không cần sao chép, sẽ được cài đặt bên trong container
+node_modules
+
+# Các file build, sẽ được tạo ra bên trong container
+dist
+
+# File cấu hình môi trường, sẽ được cung cấp từ bên ngoài
+.env
+
+# Các file log của npm
+npm-debug.log
