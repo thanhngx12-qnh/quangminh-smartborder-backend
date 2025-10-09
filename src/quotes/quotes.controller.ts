@@ -11,76 +11,61 @@ import {
   HttpStatus,
   ParseIntPipe,
   Query,
+  UseGuards, // <-- Import
 } from '@nestjs/common';
 import { QuotesService } from './quotes.service';
 import { CreateQuoteDto } from './dto/create-quote.dto';
 import { UpdateQuoteDto } from './dto/update-quote.dto';
-import { Quote } from './entities/quote.entity';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard'; // <-- Import
+import { RolesGuard } from 'src/auth/guards/roles.guard';     // <-- Import
+import { Roles } from 'src/auth/decorators/roles.decorator';  // <-- Import
+import { UserRole } from 'src/users/entities/user.entity';    // <-- Import
 
-@Controller('quotes') // Base route: /quotes
+@Controller('quotes')
 export class QuotesController {
   constructor(private readonly quotesService: QuotesService) {}
 
   /**
-   * @route POST /quotes
-   * @description Gửi một yêu cầu báo giá mới từ phía khách hàng.
-   * @param createQuoteDto Dữ liệu yêu cầu báo giá.
-   * @returns Yêu cầu báo giá đã tạo.
+   * Endpoint này công khai để khách hàng gửi yêu cầu
    */
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  async create(@Body() createQuoteDto: CreateQuoteDto): Promise<Quote> {
+  async create(@Body() createQuoteDto: CreateQuoteDto) {
     return this.quotesService.create(createQuoteDto);
   }
 
-  /**
-   * @route GET /quotes
-   * @description Lấy danh sách tất cả yêu cầu báo giá. (Chỉ cho Admin)
-   * @param status (Query parameter, tùy chọn) Lọc theo trạng thái yêu cầu báo giá.
-   * @returns Mảng các yêu cầu báo giá.
-   */
   @Get()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.SALES) // ADMIN và SALES có thể xem
   @HttpCode(HttpStatus.OK)
-  async findAll(@Query('status') status?: string): Promise<Quote[]> {
+  async findAll(@Query('status') status?: string) {
     return this.quotesService.findAll(status);
   }
 
-  /**
-   * @route GET /quotes/:id
-   * @description Lấy chi tiết một yêu cầu báo giá theo ID. (Chỉ cho Admin)
-   * @param id ID của yêu cầu báo giá.
-   * @returns Yêu cầu báo giá tìm thấy.
-   */
   @Get(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.SALES) // ADMIN và SALES có thể xem
   @HttpCode(HttpStatus.OK)
-  async findOne(@Param('id', ParseIntPipe) id: number): Promise<Quote> {
+  async findOne(@Param('id', ParseIntPipe) id: number) {
     return this.quotesService.findOne(id);
   }
 
-  /**
-   * @route PATCH /quotes/:id
-   * @description Cập nhật một yêu cầu báo giá. (Chỉ cho Admin)
-   * @param id ID của yêu cầu báo giá cần cập nhật.
-   * @param updateQuoteDto Dữ liệu cập nhật.
-   * @returns Yêu cầu báo giá đã cập nhật.
-   */
   @Patch(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.SALES) // ADMIN và SALES có thể cập nhật
   @HttpCode(HttpStatus.OK)
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateQuoteDto: UpdateQuoteDto,
-  ): Promise<Quote> {
+  ) {
     return this.quotesService.update(id, updateQuoteDto);
   }
 
-  /**
-   * @route DELETE /quotes/:id
-   * @description Xóa một yêu cầu báo giá theo ID. (Chỉ cho Admin)
-   * @param id ID của yêu cầu báo giá cần xóa.
-   */
   @Delete(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN) // Chỉ ADMIN được xóa
   @HttpCode(HttpStatus.NO_CONTENT)
-  async remove(@Param('id', ParseIntPipe) id: number): Promise<void> {
+  async remove(@Param('id', ParseIntPipe) id: number) {
     await this.quotesService.remove(id);
   }
 }

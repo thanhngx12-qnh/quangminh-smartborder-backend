@@ -9,95 +9,73 @@ import {
   Delete,
   HttpCode,
   HttpStatus,
-  UsePipes,
-  ValidationPipe,
+  UseGuards, // <-- Import
 } from '@nestjs/common';
 import { ConsignmentsService } from './consignments.service';
 import { CreateConsignmentDto } from './dto/create-consignment.dto';
 import { UpdateConsignmentDto } from './dto/update-consignment.dto';
 import { AddTrackingEventDto } from './dto/add-tracking-event.dto';
-import { Consignment } from './entities/consignment.entity';
-import { TrackingEvent } from './entities/tracking-event.entity';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard'; // <-- Import
+import { RolesGuard } from 'src/auth/guards/roles.guard';     // <-- Import
+import { Roles } from 'src/auth/decorators/roles.decorator';  // <-- Import
+import { UserRole } from 'src/users/entities/user.entity';    // <-- Import
 
-@Controller('consignments') // Base route: /consignments
+@Controller('consignments')
 export class ConsignmentsController {
   constructor(private readonly consignmentsService: ConsignmentsService) {}
 
-  /**
-   * @route POST /consignments
-   * @description Tạo một vận đơn mới.
-   * @param createConsignmentDto Dữ liệu vận đơn từ request body.
-   * @returns Vận đơn đã tạo.
-   */
   @Post()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.OPS) // ADMIN và OPS có thể tạo
   @HttpCode(HttpStatus.CREATED)
-  async create(@Body() createConsignmentDto: CreateConsignmentDto): Promise<Consignment> {
+  async create(@Body() createConsignmentDto: CreateConsignmentDto) {
     return this.consignmentsService.create(createConsignmentDto);
   }
 
-  /**
-   * @route GET /consignments
-   * @description Lấy danh sách tất cả vận đơn (chỉ cho Admin).
-   * @returns Mảng các vận đơn.
-   */
   @Get()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.OPS, UserRole.SALES) // ADMIN, OPS, SALES có thể xem
   @HttpCode(HttpStatus.OK)
-  async findAll(): Promise<Consignment[]> {
+  async findAll() {
     return this.consignmentsService.findAll();
   }
-
+  
   /**
-   * @route GET /consignments/lookup/:awb
-   * @description Tra cứu vận đơn theo mã AWB.
-   * @param awb Mã vận đơn.
-   * @returns Vận đơn tìm thấy cùng với các sự kiện theo dõi.
+   * Endpoint này công khai để khách hàng tra cứu
    */
   @Get('lookup/:awb')
   @HttpCode(HttpStatus.OK)
-  async findOneByAwb(@Param('awb') awb: string): Promise<Consignment> {
+  async findOneByAwb(@Param('awb') awb: string) {
     return this.consignmentsService.findOneByAwb(awb);
   }
 
-  /**
-   * @route PATCH /consignments/:awb
-   * @description Cập nhật thông tin vận đơn.
-   * @param awb Mã vận đơn cần cập nhật.
-   * @param updateConsignmentDto Dữ liệu cập nhật.
-   * @returns Vận đơn đã cập nhật.
-   */
   @Patch(':awb')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.OPS) // ADMIN và OPS có thể cập nhật
   @HttpCode(HttpStatus.OK)
   async update(
     @Param('awb') awb: string,
     @Body() updateConsignmentDto: UpdateConsignmentDto,
-  ): Promise<Consignment> {
+  ) {
     return this.consignmentsService.update(awb, updateConsignmentDto);
   }
 
-  /**
-   * @route POST /consignments/:awb/events
-   * @description Thêm một sự kiện theo dõi vào vận đơn.
-   * @param awb Mã vận đơn.
-   * @param addTrackingEventDto Dữ liệu sự kiện theo dõi.
-   * @returns Sự kiện theo dõi đã thêm.
-   */
   @Post(':awb/events')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.OPS) // ADMIN và OPS có thể thêm sự kiện
   @HttpCode(HttpStatus.CREATED)
   async addTrackingEvent(
     @Param('awb') awb: string,
     @Body() addTrackingEventDto: AddTrackingEventDto,
-  ): Promise<TrackingEvent> {
+  ) {
     return this.consignmentsService.addTrackingEvent(awb, addTrackingEventDto);
   }
 
-  /**
-   * @route DELETE /consignments/:awb
-   * @description Xóa một vận đơn theo mã AWB.
-   * @param awb Mã vận đơn cần xóa.
-   */
   @Delete(':awb')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN) // Chỉ ADMIN được xóa
   @HttpCode(HttpStatus.NO_CONTENT)
-  async remove(@Param('awb') awb: string): Promise<void> {
+  async remove(@Param('awb') awb: string) {
     await this.consignmentsService.remove(awb);
   }
 }
