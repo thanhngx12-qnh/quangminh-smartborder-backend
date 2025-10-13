@@ -12,7 +12,9 @@ import { QuotesModule } from './quotes/quotes.module';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { NewsModule } from './news/news.module';
-import { CareersModule } from './careers/careers.module';
+import { CareersModule } from './careers/careers.module'; 
+import crypto from 'crypto';
+
 
 @Module({
   imports: [

@@ -5,15 +5,20 @@ import { AuthController } from './auth.controller';
 import { UsersModule } from 'src/users/users.module';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
-import { ConfigService } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config'; // <-- Import ConfigModule
 import { JwtStrategy } from './jwt.strategy';
-import { LocalStrategy } from './local.strategy'; // Import LocalStrategy
+import { LocalStrategy } from './local.strategy';
 
 @Module({
   imports: [
+    // SỬA LỖI Ở ĐÂY: Import ConfigModule
+    ConfigModule, 
+    
     UsersModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
+      // Vì đã import ConfigModule ở trên, NestJS sẽ biết tìm ConfigService ở đâu
+      imports: [ConfigModule], // Thêm dòng này để chắc chắn 100%
       useFactory: (configService: ConfigService) => ({
         secret: configService.get<string>('JWT_SECRET'),
         signOptions: {
@@ -23,8 +28,8 @@ import { LocalStrategy } from './local.strategy'; // Import LocalStrategy
       inject: [ConfigService],
     }),
   ],
-  providers: [AuthService, JwtStrategy, LocalStrategy], // Đăng ký cả hai Strategy
+  providers: [AuthService, JwtStrategy, LocalStrategy],
   controllers: [AuthController],
-  exports: [AuthService],
+  exports: [AuthService, PassportModule, JwtModule],
 })
 export class AuthModule {}

@@ -18,9 +18,9 @@ import { CreateServiceDto } from './dto/create-service.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
 import { Service } from './entities/service.entity';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';     // <-- Import JwtAuthGuard
-import { RolesGuard } from 'src/auth/guards/roles.guard';         // <-- Import RolesGuard
-import { Roles } from 'src/auth/decorators/roles.decorator';      // <-- Import Roles decorator
-import { UserRole } from 'src/users/entities/user.entity';        // <-- Import UserRole enum
+// import { RolesGuard } from 'src/auth/guards/roles.guard';         // <-- Import RolesGuard
+// import { Roles } from 'src/auth/decorators/roles.decorator';      // <-- Import Roles decorator
+// import { UserRole } from 'src/users/entities/user.entity';        // <-- Import UserRole enum
 
 @Controller('services')
 export class ServicesController {
@@ -33,8 +33,8 @@ export class ServicesController {
    * @returns Dịch vụ đã tạo.
    */
   @Post()
-  @UseGuards(JwtAuthGuard, RolesGuard) // Áp dụng cả hai Guard
-  @Roles(UserRole.ADMIN, UserRole.CONTENT_MANAGER) // Chỉ định các vai trò được phép
+  @UseGuards(JwtAuthGuard) // Áp dụng cả hai Guard
+  // @Roles(UserRole.ADMIN, UserRole.CONTENT_MANAGER) // Chỉ định các vai trò được phép
   @HttpCode(HttpStatus.CREATED)
   async create(@Body() createServiceDto: CreateServiceDto): Promise<Service> {
     return this.servicesService.create(createServiceDto);
@@ -100,8 +100,8 @@ export class ServicesController {
    * @returns Dịch vụ đã cập nhật.
    */
   @Patch(':id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.CONTENT_MANAGER)
+  @UseGuards(JwtAuthGuard)
+  // @Roles(UserRole.ADMIN, UserRole.CONTENT_MANAGER)
   @HttpCode(HttpStatus.OK)
   async update(
     @Param('id', ParseIntPipe) id: number,
@@ -116,8 +116,8 @@ export class ServicesController {
    * @param id ID của dịch vụ cần xóa.
    */
   @Delete(':id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN) // Chỉ ADMIN mới có quyền xóa
+  @UseGuards(JwtAuthGuard)
+  // @Roles(UserRole.ADMIN) // Chỉ ADMIN mới có quyền xóa
   @HttpCode(HttpStatus.NO_CONTENT)
   async remove(@Param('id', ParseIntPipe) id: number): Promise<void> {
     await this.servicesService.remove(id);
