@@ -11,6 +11,7 @@ import {
   HttpCode,
   HttpStatus,
   ParseIntPipe,
+  DefaultValuePipe,
   UseGuards,
 } from '@nestjs/common';
 import { NewsService } from './news.service';
@@ -45,9 +46,13 @@ export class NewsController {
   @Get('all')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.CONTENT_MANAGER)
-  @HttpCode(HttpStatus.OK)
-  findAllForAdmin(@Query('locale') locale?: string, @Query('status') status?: NewsStatus) {
-    return this.newsService.findAll(locale, status);
+  findAllForAdmin(
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
+    @Query('locale') locale?: string,
+    @Query('status') status?: NewsStatus
+  ) {
+    return this.newsService.findAll(page, limit, locale, status);
   }
 
   /**
@@ -55,11 +60,15 @@ export class NewsController {
    * @description Lấy danh sách bài viết đã PUBLISHED cho trang công khai.
    */
   @Get()
-  @HttpCode(HttpStatus.OK)
-  findAllPublished(@Query('locale') locale?: string, @Query('featured') featured?: string) {
-    // Chỉ lấy các bài đã xuất bản
-    return this.newsService.findAll(locale, NewsStatus.PUBLISHED, featured === 'true');
+  findAllPublished(
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(9), ParseIntPipe) limit: number,
+    @Query('locale') locale?: string,
+    @Query('featured') featured?: string
+  ) {
+    return this.newsService.findAll(page, limit, locale, NewsStatus.PUBLISHED, featured === 'true');
   }
+
 
   /**
    * @route GET /news/slug/:locale/:slug (CÔNG KHAI)

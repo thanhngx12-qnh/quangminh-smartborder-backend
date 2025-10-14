@@ -7,6 +7,14 @@ import { NewsTranslation } from './entities/news-translation.entity';
 import { CreateNewsDto } from './dto/create-news.dto';
 import { UpdateNewsDto } from './dto/update-news.dto';
 
+export interface PaginatedNewsResult {
+  data: News[];
+  total: number;
+  page: number;
+  limit: number;
+  lastPage: number;
+}
+
 @Injectable()
 export class NewsService {
   constructor(
@@ -51,26 +59,42 @@ export class NewsService {
   /**
    * Lấy danh sách tất cả bài viết, có thể lọc.
    */
-  async findAll(locale?: string, status?: NewsStatus, featured?: boolean): Promise<News[]> {
+  async findAll(
+    page: number = 1,
+    limit: number = 9, // Mặc định 9 bài viết mỗi trang
+    locale?: string,
+    status?: NewsStatus,
+    featured?: boolean
+  ): Promise<PaginatedNewsResult> {
+    const skip = (page - 1) * limit;
+
     const queryBuilder = this.newsRepository
       .createQueryBuilder('news')
-      .leftJoinAndSelect('news.translations', 'translation');
+      .leftJoinAndSelect('news.translations', 'translation')
+      .orderBy('news.publishedAt', 'DESC')
+      .skip(skip)
+      .take(limit);
 
     if (locale) {
       queryBuilder.andWhere('translation.locale = :locale', { locale });
     }
-
     if (status) {
       queryBuilder.andWhere('news.status = :status', { status });
     }
-    
     if (featured !== undefined) {
       queryBuilder.andWhere('news.featured = :featured', { featured });
     }
-    
-    queryBuilder.orderBy('news.publishedAt', 'DESC');
 
-    return queryBuilder.getMany();
+    const [data, total] = await queryBuilder.getManyAndCount();
+    const lastPage = Math.ceil(total / limit);
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+      lastPage,
+    };
   }
 
   /**
