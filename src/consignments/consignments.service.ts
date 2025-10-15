@@ -8,6 +8,7 @@ import { CreateConsignmentDto } from './dto/create-consignment.dto';
 import { UpdateConsignmentDto } from './dto/update-consignment.dto';
 import { AddTrackingEventDto } from './dto/add-tracking-event.dto';
 import { AiEtaService } from './ai-eta.service'; // Import AI ETA Service
+import { User } from 'src/users/entities/user.entity'; 
 
 @Injectable()
 export class ConsignmentsService {
@@ -106,10 +107,14 @@ export class ConsignmentsService {
    * @returns Sự kiện theo dõi đã thêm.
    * @throws NotFoundException nếu không tìm thấy vận đơn.
    */
-  async addTrackingEvent(awb: string, addTrackingEventDto: AddTrackingEventDto): Promise<TrackingEvent> {
+  async addTrackingEvent(
+    awb: string, 
+    addTrackingEventDto: AddTrackingEventDto,
+    user: User, // <-- Nhận thêm đối tượng User
+  ): Promise<TrackingEvent> {
     const consignment = await this.consignmentsRepository.findOne({
       where: { awb },
-      relations: ['events'], // Cần load events để truyền vào AI ETA service
+      relations: ['events'],
     });
     if (!consignment) {
       throw new NotFoundException(`Consignment with AWB '${awb}' not found.`);
@@ -119,6 +124,7 @@ export class ConsignmentsService {
       ...addTrackingEventDto,
       eventTime: addTrackingEventDto.eventTime ? new Date(addTrackingEventDto.eventTime) : new Date(),
       consignment: consignment,
+      createdBy: user, // <-- Gán đối tượng User vào mối quan hệ
     });
     await this.trackingEventsRepository.save(event);
 

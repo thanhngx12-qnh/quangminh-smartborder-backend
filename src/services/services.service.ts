@@ -6,6 +6,10 @@ import { Service } from './entities/service.entity';
 import { ServiceTranslation } from './entities/service-translation.entity';
 import { CreateServiceDto } from './dto/create-service.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
+import { PaginatedResult } from 'src/common/types/pagination.types';
+
+// Export kiểu dữ liệu cụ thể cho Service
+export type PaginatedServiceResult = PaginatedResult<Service>;
 
 @Injectable()
 export class ServicesService {
@@ -53,57 +57,61 @@ export class ServicesService {
     }
     return createdService;
   }
-ßsw
+
   /**
-   * Lấy danh sách tất cả dịch vụ.
-   * Có thể lọc theo ngôn ngữ (locale) và trạng thái nổi bật (featured).
-   * @param locale Lọc bản dịch theo ngôn ngữ.
-   * @param featured Lọc dịch vụ nổi bật.
+   * Lấy danh sách tất cả dịch vụ, hỗ trợ phân trang và lọc.
    * @returns Mảng các dịch vụ.
    */
-  async findAll(locale?: string, featured?: boolean): Promise<Service[]> {
+  async findAll(
+    page: number = 1,
+    limit: number = 10,
+    locale?: string,
+    featured?: boolean,
+  ): Promise<PaginatedServiceResult> {
+    const skip = (page - 1) * limit;
+
     const queryBuilder = this.servicesRepository
       .createQueryBuilder('service')
-      .leftJoinAndSelect('service.translations', 'translation');
-
+      // Quan trọng: Sử dụng leftJoinAndSelect để nạp kèm bản dịch
+      .leftJoinAndSelect('service.translations', 'translation')
+      .orderBy('service.createdAt', 'DESC'); // Sắp xếp theo ngày tạo mới nhất
+      
+    // Áp dụng các bộ lọc
     if (locale) {
-      queryBuilder.andWhere('translation.locale = :locale', { locale });
-    } else {
-        // Nếu không có locale, chỉ lấy bản dịch mặc định (ví dụ: 'vi') hoặc tất cả
-        // Để đơn giản, hiện tại nếu không có locale sẽ trả về tất cả bản dịch của mỗi service.
-        // Bạn có thể tùy chỉnh logic này sau.
+      // Logic này chưa tối ưu, nó sẽ lọc bản dịch sau khi query.
+      // Một cách tốt hơn là `andWhere('translation.locale = :locale', { locale })`
+      // Nhưng điều đó sẽ chỉ trả về các service CÓ bản dịch đó.
+      // Tạm thời giữ nguyên để đảm bảo trả về tất cả service.
     }
-
     if (featured !== undefined) {
       queryBuilder.andWhere('service.featured = :featured', { featured });
     }
 
-    return queryBuilder.getMany();
-  }
+    // Lấy tổng số lượng trước khi phân trang
+    const total = await queryBuilder.getCount();
 
-  /**
-   * Lấy chi tiết một dịch vụ theo ID.
-   * @param id ID của dịch vụ.
-   * @param locale Lọc bản dịch theo ngôn ngữ.
-   * @returns Dịch vụ tìm thấy.
-   * @throws NotFoundException nếu không tìm thấy dịch vụ.
-   */
-  async findOne(id: number, locale?: string): Promise<Service> {
-    const service = await this.servicesRepository.findOne({
-      where: { id },
-      relations: ['translations'],
-    });
+    // Áp dụng phân trang
+    queryBuilder.skip(skip).take(limit);
 
-    if (!service) {
-      throw new NotFoundException(`Service with ID ${id} not found.`);
+    // Lấy dữ liệu của trang hiện tại
+    const data = await queryBuilder.getMany();
+    
+    // Xử lý lọc locale phía server (nếu được cung cấp)
+    if(locale) {
+        data.forEach(service => {
+            service.translations = service.translations.filter(t => t.locale === locale)
+        })
     }
+    
+    const lastPage = Math.ceil(total / limit);
 
-    // Nếu có locale, chỉ trả về bản dịch cho locale đó
-    if (locale) {
-      service.translations = service.translations.filter(t => t.locale === locale);
-    }
-
-    return service;
+    return {
+      data,
+      total,
+      page,
+      limit,
+      lastPage,
+    };
   }
 
   /**
@@ -127,6 +135,24 @@ export class ServicesService {
 
     // Đảm bảo chỉ trả về bản dịch của locale yêu cầu
     service.translations = service.translations.filter(t => t.locale === locale);
+
+    return service;
+  }
+
+  async findOne(id: number, locale?: string): Promise<Service> {
+    const service = await this.servicesRepository.findOne({
+      where: { id },
+      relations: ['translations'],
+    });
+
+    if (!service) {
+      throw new NotFoundException(`Service with ID ${id} not found.`);
+    }
+
+    // Nếu có locale, chỉ trả về bản dịch cho locale đó
+    if (locale && service.translations) {
+      service.translations = service.translations.filter(t => t.locale === locale);
+    }
 
     return service;
   }

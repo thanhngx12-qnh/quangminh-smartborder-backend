@@ -6,7 +6,9 @@ import { JobPosting, JobStatus } from './entities/job-posting.entity';
 import { JobApplication } from './entities/job-application.entity';
 import { CreateJobPostingDto } from './dto/create-job-posting.dto';
 import { UpdateJobPostingDto } from './dto/update-job-posting.dto';
+import { PaginatedResult } from 'src/common/types/pagination.types'; 
 
+export type PaginatedJobPostingsResult = PaginatedResult<JobPosting>;
 @Injectable()
 export class CareersService {
   constructor(
@@ -23,9 +25,32 @@ export class CareersService {
     return this.jobPostingsRepository.save(jobPosting);
   }
 
-  findAllJobPostings(status?: JobStatus): Promise<JobPosting[]> {
-    const where = status ? { status } : {};
-    return this.jobPostingsRepository.find({ where, order: { createdAt: 'DESC' } });
+  async findAllJobPostings(
+    page: number = 1,
+    limit: number = 10,
+    status?: JobStatus,
+  ): Promise<PaginatedJobPostingsResult> {
+    const skip = (page - 1) * limit;
+
+    const findOptions = {
+      where: status ? { status } : {},
+      order: { createdAt: 'DESC' as const },
+      skip: skip,
+      take: limit,
+    };
+    
+    // getManyAndCount là cách hiệu quả để lấy cả dữ liệu và tổng số lượng
+    const [data, total] = await this.jobPostingsRepository.findAndCount(findOptions);
+    
+    const lastPage = Math.ceil(total / limit);
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+      lastPage,
+    };
   }
 
   async findOneJobPosting(id: number): Promise<JobPosting> {

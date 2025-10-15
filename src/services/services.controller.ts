@@ -11,9 +11,11 @@ import {
   HttpCode,
   HttpStatus,
   ParseIntPipe,
-  UseGuards, // <-- Thêm import UseGuards
+  UseGuards,
+  DefaultValuePipe, // <-- Thêm import UseGuards
 } from '@nestjs/common';
 import { ServicesService } from './services.service';
+import { ApiTags, ApiQuery } from '@nestjs/swagger'; 
 import { CreateServiceDto } from './dto/create-service.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
 import { Service } from './entities/service.entity';
@@ -40,24 +42,21 @@ export class ServicesController {
     return this.servicesService.create(createServiceDto);
   }
 
-  /**
-   * @route GET /services (Công khai)
-   * @description Lấy danh sách tất cả dịch vụ.
-   * @param locale (Query parameter, tùy chọn) Lọc bản dịch theo ngôn ngữ.
-   * @param featured (Query parameter, tùy chọn) Lọc dịch vụ nổi bật (true/false).
-   * @returns Mảng các dịch vụ.
-   */
   @Get()
+  // THÊM CÁC DECORATOR Ở ĐÂY
+  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Số trang' })
+  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Số lượng trên mỗi trang' })
+  @ApiQuery({ name: 'locale', required: false, type: String, description: 'Ngôn ngữ (vi, en, zh)' })
+  @ApiQuery({ name: 'featured', required: false, type: Boolean, description: 'Lọc dịch vụ nổi bật' })
   @HttpCode(HttpStatus.OK)
   async findAll(
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
     @Query('locale') locale?: string,
     @Query('featured') featured?: string,
-  ): Promise<Service[]> {
-    let featuredBoolean: boolean | undefined;
-    if (featured !== undefined) {
-      featuredBoolean = featured.toLowerCase() === 'true';
-    }
-    return this.servicesService.findAll(locale, featuredBoolean);
+  ) {
+    const featuredBoolean = featured === 'true' ? true : featured === 'false' ? false : undefined;
+    return this.servicesService.findAll(page, limit, locale, featuredBoolean);
   }
 
   /**

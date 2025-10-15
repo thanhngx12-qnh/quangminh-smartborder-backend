@@ -10,6 +10,7 @@ import {
   HttpCode,
   HttpStatus,
   UseGuards, // <-- Import
+  Request,  // <-- Import
 } from '@nestjs/common';
 import { ConsignmentsService } from './consignments.service';
 import { CreateConsignmentDto } from './dto/create-consignment.dto';
@@ -18,6 +19,7 @@ import { AddTrackingEventDto } from './dto/add-tracking-event.dto';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard'; // <-- Import
 import { RolesGuard } from 'src/auth/guards/roles.guard';     // <-- Import
 import { Roles } from 'src/auth/decorators/roles.decorator';  // <-- Import
+import { User } from 'src/users/entities/user.entity';
 import { UserRole } from 'src/users/entities/user.entity';    // <-- Import
 
 @Controller('consignments')
@@ -60,15 +62,21 @@ export class ConsignmentsController {
     return this.consignmentsService.update(awb, updateConsignmentDto);
   }
 
+  /**
+   * @route POST /consignments/:awb/events
+   * @description Thêm một sự kiện theo dõi vào vận đơn.
+   */
   @Post(':awb/events')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.OPS) // ADMIN và OPS có thể thêm sự kiện
+  @UseGuards(JwtAuthGuard, RolesGuard) // Đảm bảo endpoint này được bảo vệ
+  @Roles(UserRole.ADMIN, UserRole.OPS)  // Chỉ Admin và Ops được thêm event
+  @ApiBearerAuth()
   @HttpCode(HttpStatus.CREATED)
   async addTrackingEvent(
     @Param('awb') awb: string,
     @Body() addTrackingEventDto: AddTrackingEventDto,
-  ) {
-    return this.consignmentsService.addTrackingEvent(awb, addTrackingEventDto);
+    @Request() req: { user: User }, // <-- Lấy user từ request
+  ): Promise<TrackingEvent> {
+    return this.consignmentsService.addTrackingEvent(awb, addTrackingEventDto, req.user);
   }
 
   @Delete(':awb')

@@ -5,25 +5,24 @@ export class CreateQuoteDto {
   @IsString()
   @IsNotEmpty()
   @Length(3, 255)
-  customerName: string; // Tên khách hàng
+  customerName: string;
 
   @IsEmail()
   @IsNotEmpty()
-  email: string; // Email liên hệ
+  email: string;
 
+  // SỬA LỖI Ở ĐÂY: Bỏ IsOptional, thêm IsNotEmpty
   @IsString()
-  @IsOptional()
-  @Length(5, 50)
-  phone?: string; // Số điện thoại liên hệ
+  @IsNotEmpty()
+  @Length(9, 50)
+  phone: string;
 
   @IsNumber()
   @IsOptional()
-  serviceId?: number; // ID dịch vụ mà khách hàng quan tâm
+  serviceId?: number; // Vẫn nhận serviceId từ frontend
 
   @IsString()
   @IsNotEmpty()
   @Length(10, 1000)
-  details: string; // Mô tả chi tiết yêu cầu
-
-  // status và aiSuggestedPrice sẽ được backend tự động thiết lập hoặc tính toán
+  details: string;
 }

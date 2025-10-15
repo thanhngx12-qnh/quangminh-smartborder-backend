@@ -15,6 +15,7 @@ import {
   ParseFilePipe,    // <-- Import các Pipe để validate file
   FileTypeValidator,
   MaxFileSizeValidator,
+  DefaultValuePipe,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express'; // <-- Import FileInterceptor
 import { CareersService } from './careers.service';
@@ -26,6 +27,7 @@ import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Roles } from 'src/auth/decorators/roles.decorator';
 import { UserRole } from 'src/users/entities/user.entity';
+import { ApiTags, ApiBearerAuth, ApiQuery, ApiOperation } from '@nestjs/swagger';
 
 @Controller('careers')
 export class CareersController {
@@ -43,16 +45,29 @@ export class CareersController {
   @Get('postings/all')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
-  findAllJobPostingsForAdmin() {
-    return this.careersService.findAllJobPostings();
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get all job postings (paginated) - Admin only' })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiQuery({ name: 'status', required: false, enum: JobStatus })
+  findAllJobPostingsForAdmin(
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
+    @Query('status') status?: JobStatus,
+  ) {
+    return this.careersService.findAllJobPostings(page, limit, status);
   }
-
+  
   // --- Public Job Posting Endpoints ---
-
   @Get('postings')
-  findAllOpenJobPostings() {
-    // Chỉ hiển thị các tin đang MỞ cho người dùng công khai
-    return this.careersService.findAllJobPostings(JobStatus.OPEN);
+  @ApiOperation({ summary: 'Get open job postings (paginated) - Public' })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  findAllOpenJobPostings(
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(9), ParseIntPipe) limit: number,
+  ) {
+    return this.careersService.findAllJobPostings(page, limit, JobStatus.OPEN);
   }
 
   @Get('postings/:id')

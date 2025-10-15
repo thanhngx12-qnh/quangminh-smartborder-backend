@@ -6,35 +6,47 @@ import {
   ManyToOne,
   CreateDateColumn,
   Index,
+  JoinColumn, // <-- Import JoinColumn
 } from 'typeorm';
 import { Consignment } from './consignment.entity';
+import { User } from 'src/users/entities/user.entity'; // <-- Import User
 
-@Entity('tracking_events') // Đặt tên bảng là 'tracking_events'
-@Index(['consignment', 'eventTime']) // Index cho tìm kiếm sự kiện theo vận đơn và thời gian
+@Entity('tracking_events')
+@Index(['consignment', 'eventTime'])
 export class TrackingEvent {
   @PrimaryGeneratedColumn()
   id: number;
 
   @ManyToOne(() => Consignment, (consignment) => consignment.events, {
-    onDelete: 'CASCADE', // Xóa sự kiện khi vận đơn bị xóa
+    onDelete: 'CASCADE',
   })
-  consignment: Consignment; // Mối quan hệ nhiều-một với Consignment
+  consignment: Consignment;
 
   @Column({ length: 50 })
-  eventCode: string; // Mã sự kiện (ví dụ: 'ORIGIN_SCAN', 'DEPARTED', 'ARRIVED', 'DELIVERED')
+  eventCode: string;
 
   @Column({ type: 'text' })
-  description: string; // Mô tả chi tiết của sự kiện
+  description: string;
 
-  @CreateDateColumn({ type: 'timestamp' }) // Thời gian diễn ra sự kiện
+  @CreateDateColumn({ type: 'timestamp' })
   eventTime: Date;
 
   @Column({ nullable: true })
-  location?: string; // Địa điểm diễn ra sự kiện
-
-  @Column({ type: 'point', nullable: true }) // Dữ liệu địa lý (lat, long)
-  geo?: string; // TypeORM không hỗ trợ 'point' trực tiếp, lưu dưới dạng 'X,Y' hoặc JSON string nếu cần
-
+  location?: string;
+  
+  @Column({ type: 'point', nullable: true })
+  geo?: string;
+  
+  // SỬA LỖI Ở ĐÂY: Tạo mối quan hệ với User
+  @ManyToOne(() => User, { 
+    nullable: true, // Có thể có sự kiện tự động (NULL user)
+    onDelete: 'SET NULL' // Nếu xóa user, giữ lại event nhưng createdBy là NULL
+  })
+  @JoinColumn({ name: 'createdById' }) // Tên cột khóa ngoại trong DB
+  createdBy: User | null;
+  
+  // Vẫn giữ cột này để TypeORM dễ quản lý khóa ngoại,
+  // và để tương thích với các DTO cũ hơn (nếu cần)
   @Column({ nullable: true })
-  createdBy?: number; // ID người tạo sự kiện (nếu là nhân viên nội bộ)
+  createdById: number;
 }

@@ -3,14 +3,16 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Quote } from './entities/quote.entity';
 import { QuotesService } from './quotes.service';
-import { QuotesController } from './quotes.controller'; // Import controller
+import { QuotesController } from './quotes.controller';
+import { Service } from 'src/services/entities/service.entity'; // <-- Import
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Quote]),
+    // Cung cấp Repository cho Quote và Service
+    TypeOrmModule.forFeature([Quote, Service]), 
   ],
   providers: [QuotesService],
-  controllers: [QuotesController], // Đăng ký controller
-  exports: [TypeOrmModule, QuotesService],
+  controllers: [QuotesController],
+  exports: [QuotesService], // Đổi từ TypeOrmModule sang QuotesService
 })
 export class QuotesModule {}
