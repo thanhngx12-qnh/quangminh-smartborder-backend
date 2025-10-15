@@ -20,7 +20,9 @@ import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard'; // <-- Import
 import { RolesGuard } from 'src/auth/guards/roles.guard';     // <-- Import
 import { Roles } from 'src/auth/decorators/roles.decorator';  // <-- Import
 import { User } from 'src/users/entities/user.entity';
+import { TrackingEvent } from './entities/tracking-event.entity'; 
 import { UserRole } from 'src/users/entities/user.entity';    // <-- Import
+import { ApiBearerAuth } from '@nestjs/swagger'; // <-- Import
 
 @Controller('consignments')
 export class ConsignmentsController {
