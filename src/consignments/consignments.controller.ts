@@ -11,6 +11,7 @@ import {
   HttpStatus,
   UseGuards, // <-- Import
   Request,  // <-- Import
+  Query, 
 } from '@nestjs/common';
 import { ConsignmentsService } from './consignments.service';
 import { CreateConsignmentDto } from './dto/create-consignment.dto';
@@ -22,7 +23,8 @@ import { Roles } from 'src/auth/decorators/roles.decorator';  // <-- Import
 import { User } from 'src/users/entities/user.entity';
 import { TrackingEvent } from './entities/tracking-event.entity'; 
 import { UserRole } from 'src/users/entities/user.entity';    // <-- Import
-import { ApiBearerAuth } from '@nestjs/swagger'; // <-- Import
+import { ApiBearerAuth, ApiOperation, ApiQuery } from '@nestjs/swagger'; // <-- Import
+import { Consignment } from './entities/consignment.entity';
 
 @Controller('consignments')
 export class ConsignmentsController {
@@ -87,5 +89,21 @@ export class ConsignmentsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async remove(@Param('awb') awb: string) {
     await this.consignmentsService.remove(awb);
+  }
+
+  @Get('lookup')
+  @ApiOperation({ summary: 'Look up one or more consignments by AWB(s)' })
+  @ApiQuery({ 
+    name: 'awbs', 
+    required: true, 
+    description: 'Một hoặc nhiều mã AWB, cách nhau bởi dấu phẩy (vd: AWB1,AWB2)',
+    example: 'QMSB123456,QMSB654321'
+  })
+  @HttpCode(HttpStatus.OK)
+  async findMultipleByAwbs(
+    @Query('awbs') awbs: string
+  ): Promise<Consignment[]> {
+    // Trả về response đã được chuẩn hóa bởi Interceptor của chúng ta
+    return this.consignmentsService.findByAwbs(awbs);
   }
 }

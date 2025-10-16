@@ -1,7 +1,7 @@
 // dir: ~/quangminh-smart-border/backend/src/consignments/consignments.service.ts
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { Consignment } from './entities/consignment.entity';
 import { TrackingEvent } from './entities/tracking-event.entity';
 import { CreateConsignmentDto } from './dto/create-consignment.dto';
@@ -155,5 +155,46 @@ export class ConsignmentsService {
     if (result.affected === 0) {
       throw new NotFoundException(`Consignment with AWB '${awb}' not found.`);
     }
+  }
+
+  /**
+   * Tra cứu một hoặc nhiều vận đơn theo (các) mã AWB.
+   * @param awbs Chuỗi các mã AWB, cách nhau bởi dấu phẩy, chấm phẩy hoặc khoảng trắng.
+   * @returns Mảng các vận đơn tìm thấy.
+   */
+  async findByAwbs(awbs: string): Promise<Consignment[]> {
+    if (!awbs || awbs.trim() === '') {
+      return []; // Trả về mảng rỗng nếu chuỗi tìm kiếm rỗng
+    }
+
+    // Xử lý chuỗi input: Tách chuỗi bằng dấu phẩy, chấm phẩy hoặc khoảng trắng/xuống dòng.
+    // Sau đó loại bỏ khoảng trắng thừa ở mỗi mã và lọc ra các mã rỗng.
+    const awbList = awbs.split(/[,;\s\n]+/).map(awb => awb.trim()).filter(Boolean);
+
+    if (awbList.length === 0) {
+      return []; // Trả về mảng rỗng nếu không có mã AWB hợp lệ nào
+    }
+
+    const consignments = await this.consignmentsRepository.find({
+      where: { 
+        // Sử dụng toán tử In() để tạo query `WHERE "awb" IN (...)`
+        awb: In(awbList) 
+      },
+      // Vẫn nạp kèm các sự kiện và thông tin người tạo
+      relations: {
+        events: {
+          createdBy: true,
+        },
+      },
+      // Sắp xếp để kết quả nhất quán
+      order: { 
+        createdAt: 'DESC', 
+        events: { eventTime: 'ASC' } 
+      },
+    });
+    
+    // Luôn trả về một mảng, ngay cả khi không tìm thấy.
+    // Frontend sẽ tự quyết định hiển thị thông báo "Không tìm thấy".
+    return consignments;
   }
 }
