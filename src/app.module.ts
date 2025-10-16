@@ -6,6 +6,8 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
+
+// Import tất cả các feature modules
 import { ServicesModule } from './services/services.module';
 import { ConsignmentsModule } from './consignments/consignments.module';
 import { QuotesModule } from './quotes/quotes.module';
@@ -13,15 +15,14 @@ import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { NewsModule } from './news/news.module';
 import { CareersModule } from './careers/careers.module'; 
-import crypto from 'crypto';
-
+import { SearchModule } from './search/search.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
-      isGlobal: true, // SỬA Ở ĐÂY: isGlobal thuộc về ConfigModule
+      isGlobal: true,
     }),
-    TypeOrmModule.forRootAsync({ // Chuyển sang forRootAsync
+    TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
@@ -32,18 +33,14 @@ import crypto from 'crypto';
         password: configService.get<string>('DB_PASSWORD'),
         database: configService.get<string>('DB_DATABASE'),
         autoLoadEntities: true,
-        // Chúng ta sẽ sửa synchronize thành false ở bước 3
         synchronize: false, 
       }),
     }),
-    // Cấu hình để phục vụ file tĩnh
     ServeStaticModule.forRoot({
-      // process.cwd() trỏ đến thư mục gốc của dự án (/backend)
-      // '/uploads' là thư mục chúng ta sẽ lưu file
       rootPath: join(process.cwd(), 'uploads'),
-      // Khi truy cập URL /uploads, module này sẽ tìm file trong thư mục 'uploads'
       serveRoot: '/uploads',
     }),
+    // Đăng ký tất cả các module chức năng
     ServicesModule,
     ConsignmentsModule,
     QuotesModule,
@@ -51,6 +48,7 @@ import crypto from 'crypto';
     AuthModule,
     NewsModule,
     CareersModule,
+    SearchModule,
   ],
   controllers: [AppController],
   providers: [AppService],
