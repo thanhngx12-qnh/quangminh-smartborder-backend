@@ -29,9 +29,9 @@ async function bootstrap() {
 
   // --- Cấu hình Swagger ---
   const config = new DocumentBuilder()
-    .setTitle('Quang Minh Smart Border API') // Tiêu đề của API
+    .setTitle('Phú Anh Smart Border API') // Tiêu đề của API
     .setDescription(
-      'The official API documentation for Quang Minh Smart Border Logistics Platform.', // Mô tả
+      'The official API documentation for Phú Anh Smart Border Logistics Platform.', // Mô tả
     )
     .setVersion('1.0') // Phiên bản
     .addTag('Services', 'APIs related to logistics services management') // Thêm các Tag để gom nhóm API
