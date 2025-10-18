@@ -47,7 +47,6 @@ import { SearchModule } from './search/search.module';
              ? { rejectUnauthorized: false } 
              : false,
         
-        // SỬA LẠI ĐÂY: Thay thế autoLoadEntities
         entities: [join(__dirname, '**', '*.entity.{js,ts}')],
 
         // synchronize: false, // Bỏ đi vì không cần thiết khi có migrations
