@@ -16,6 +16,7 @@ import { AuthModule } from './auth/auth.module';
 import { NewsModule } from './news/news.module';
 import { CareersModule } from './careers/careers.module'; 
 import { SearchModule } from './search/search.module';
+import { DataSource } from 'typeorm'; 
 
 @Module({
   imports: [
