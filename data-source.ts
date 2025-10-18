@@ -1,8 +1,11 @@
 // dir: ~/quangminh-smart-border/backend/data-source.ts
 import { DataSource } from 'typeorm';
 import { config } from 'dotenv';
+import { join } from 'path'; 
 
 config();
+
+const isProduction = process.env.NODE_ENV === 'production';
 
 export const AppDataSource = new DataSource({
   type: 'postgres',
@@ -12,10 +15,13 @@ export const AppDataSource = new DataSource({
   // password: process.env.DB_PASSWORD || 'password',
   // database: process.env.DB_DATABASE || 'quangminh_db',
   url: process.env.DATABASE_URL,
-  ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false,
+  ssl: isProduction ? { rejectUnauthorized: false } : false,
   
-  entities: ['src/**/*.entity.ts'], // Đã đúng, giữ nguyên
-  migrations: ['src/db/migrations/*.ts'], // Đã đúng, giữ nguyên
+  // SỬA LẠI ĐÂY
+  // Nếu là production, load file .js từ thư mục dist.
+  // Nếu không, load file .ts từ thư mục src.
+  entities: [isProduction ? join(__dirname, '**', '*.entity.js') : join(__dirname, 'src', '**', '*.entity.ts')],
+  migrations: [isProduction ? join(__dirname, 'db', 'migrations', '*.js') : join(__dirname, 'src', 'db', 'migrations', '*.ts')],
 
   migrationsTableName: 'migrations',
   synchronize: false,

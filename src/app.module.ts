@@ -42,17 +42,18 @@ import { SearchModule } from './search/search.module';
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
         type: 'postgres',
-        // SỬA Ở ĐÂY:
-        // Nếu có DATABASE_URL (trên Render), dùng nó.
-        // Nếu không, dùng các biến DB_* cho local.
         url: configService.get<string>('DATABASE_URL'),
-        // Thêm SSL cho Render, không cần cho local
-        ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false,
-        autoLoadEntities: true,
-        synchronize: false, // Luôn là false cho production
+        ssl: configService.get<string>('NODE_ENV') === 'production' 
+             ? { rejectUnauthorized: false } 
+             : false,
+        
+        // SỬA LẠI ĐÂY: Thay thế autoLoadEntities
+        entities: [join(__dirname, '**', '*.entity.{js,ts}')],
+
+        // synchronize: false, // Bỏ đi vì không cần thiết khi có migrations
       }),
     }),
-    
+
     ServeStaticModule.forRoot({
       rootPath: join(process.cwd(), 'uploads'),
       serveRoot: '/uploads',
