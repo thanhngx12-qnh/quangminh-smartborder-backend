@@ -4,9 +4,21 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common'; // Import ValidationPipe
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
+import { DataSource } from 'typeorm'; 
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  const dataSource = app.get(DataSource);
+  console.log('Running database migrations...');
+  try {
+    await dataSource.runMigrations();
+    console.log('Migrations completed successfully.');
+  } catch (error) {
+    console.error('Error running migrations:', error);
+    // Có thể dừng ứng dụng nếu migration thất bại
+    // process.exit(1); 
+  }
 
   // Cấu hình CORS để cho phép frontend truy cập API (quan trọng cho phát triển)
   app.enableCors({

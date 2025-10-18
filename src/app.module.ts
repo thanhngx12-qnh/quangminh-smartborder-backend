@@ -40,17 +40,25 @@ import { SearchModule } from './search/search.module';
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
+      // QUAN TRỌNG: Cung cấp `dataSourceFactory` để Nest có thể inject DataSource
       useFactory: (configService: ConfigService) => ({
         type: 'postgres',
         url: configService.get<string>('DATABASE_URL'),
         ssl: configService.get<string>('NODE_ENV') === 'production' 
              ? { rejectUnauthorized: false } 
              : false,
-        
         entities: [join(__dirname, '**', '*.entity.{js,ts}')],
-
-        // synchronize: false, // Bỏ đi vì không cần thiết khi có migrations
+        // THÊM CẤU HÌNH MIGRATIONS Ở ĐÂY
+        migrations: [join(__dirname, 'db', 'migrations', '*.{js,ts}')],
+        migrationsTableName: 'migrations',
+        // Bật tùy chọn này để migration có thể chạy
+        migrationsRun: false, // Để false, chúng ta sẽ chạy thủ công trong main.ts
       }),
+      // Hàm này rất quan trọng
+      dataSourceFactory: async (options) => {
+        const dataSource = new DataSource(options);
+        return dataSource;
+      },
     }),
 
     ServeStaticModule.forRoot({
