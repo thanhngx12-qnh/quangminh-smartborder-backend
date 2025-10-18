@@ -20,8 +20,8 @@ export const AppDataSource = new DataSource({
   // SỬA LẠI ĐÂY
   // Nếu là production, load file .js từ thư mục dist.
   // Nếu không, load file .ts từ thư mục src.
-  entities: [isProduction ? join(__dirname, '**', '*.entity.js') : join(__dirname, 'src', '**', '*.entity.ts')],
-  migrations: [isProduction ? join(__dirname, 'db', 'migrations', '*.js') : join(__dirname, 'src', 'db', 'migrations', '*.ts')],
+   entities: [join(__dirname, '**', '*.entity.{ts,js}')],
+  migrations: [join(__dirname, 'db', 'migrations', '*.{ts,js}')],
 
   migrationsTableName: 'migrations',
   synchronize: false,
