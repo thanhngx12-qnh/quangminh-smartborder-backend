@@ -22,20 +22,37 @@ import { SearchModule } from './search/search.module';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    // TypeOrmModule.forRootAsync({
+    //   imports: [ConfigModule],
+    //   inject: [ConfigService],
+    //   useFactory: (configService: ConfigService) => ({
+    //     type: 'postgres',
+    //     host: configService.get<string>('DB_HOST'),
+    //     port: configService.get<number>('DB_PORT'),
+    //     username: configService.get<string>('DB_USERNAME'),
+    //     password: configService.get<string>('DB_PASSWORD'),
+    //     database: configService.get<string>('DB_DATABASE'),
+    //     autoLoadEntities: true,
+    //     synchronize: false, 
+    //   }),
+    // }),
+
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
         type: 'postgres',
-        host: configService.get<string>('DB_HOST'),
-        port: configService.get<number>('DB_PORT'),
-        username: configService.get<string>('DB_USERNAME'),
-        password: configService.get<string>('DB_PASSWORD'),
-        database: configService.get<string>('DB_DATABASE'),
+        // SỬA Ở ĐÂY:
+        // Nếu có DATABASE_URL (trên Render), dùng nó.
+        // Nếu không, dùng các biến DB_* cho local.
+        url: configService.get<string>('DATABASE_URL'),
+        // Thêm SSL cho Render, không cần cho local
+        ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false,
         autoLoadEntities: true,
-        synchronize: false, 
+        synchronize: false, // Luôn là false cho production
       }),
     }),
+    
     ServeStaticModule.forRoot({
       rootPath: join(process.cwd(), 'uploads'),
       serveRoot: '/uploads',
