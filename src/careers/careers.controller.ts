@@ -95,22 +95,34 @@ export class CareersController {
   }
 
   // --- Job Application Endpoints ---
-
-  @Post('postings/:id/apply')
-  @UseInterceptors(FileInterceptor('cv')) // <-- 'cv' là tên field trong form-data
+@Post('postings/:id/apply')
+  @UseInterceptors(FileInterceptor('cv')) // Dòng này giữ nguyên
+  @ApiOperation({ summary: 'Apply for a job opening and upload CV' })
+  @ApiConsumes('multipart/form-data') // Thêm để Swagger hiển thị nút upload
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        applicantName: { type: 'string' },
+        email: { type: 'string' },
+        phone: { type: 'string' },
+        cv: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
   applyForJob(
     @Param('id', ParseIntPipe) id: number,
     @Body() createApplicationDto: CreateJobApplicationDto,
-    @UploadedFile() // <-- Lấy thông tin file đã upload
-    file: Express.Multer.File, // <-- Kiểu dữ liệu của file
+    @UploadedFile() file: Express.Multer.File, // Giữ nguyên
   ) {
-    // Validation: Đảm bảo file đã được upload
     if (!file) {
-      throw new Error('CV file is required');
+      throw new BadRequestException('CV file is required.'); // Dùng lỗi HTTP chuẩn
     }
 
-    // `file.path` sẽ là đường dẫn lưu file trên server, ví dụ: 'uploads/cvs/random_name.pdf'
-    // Chúng ta chỉ cần lưu đường dẫn này vào database
+    // `file.path` bây giờ sẽ là URL từ Cloudinary, ví dụ: "https://res.cloudinary.com/..."
     return this.careersService.applyForJob(id, createApplicationDto, file.path);
   }
 

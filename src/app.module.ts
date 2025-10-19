@@ -17,26 +17,13 @@ import { NewsModule } from './news/news.module';
 import { CareersModule } from './careers/careers.module'; 
 import { SearchModule } from './search/search.module';
 import { DataSource } from 'typeorm'; 
+import { CloudinaryModule } from './cloudinary/cloudinary.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
     }),
-    // TypeOrmModule.forRootAsync({
-    //   imports: [ConfigModule],
-    //   inject: [ConfigService],
-    //   useFactory: (configService: ConfigService) => ({
-    //     type: 'postgres',
-    //     host: configService.get<string>('DB_HOST'),
-    //     port: configService.get<number>('DB_PORT'),
-    //     username: configService.get<string>('DB_USERNAME'),
-    //     password: configService.get<string>('DB_PASSWORD'),
-    //     database: configService.get<string>('DB_DATABASE'),
-    //     autoLoadEntities: true,
-    //     synchronize: false, 
-    //   }),
-    // }),
 
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
@@ -75,6 +62,7 @@ import { DataSource } from 'typeorm';
     NewsModule,
     CareersModule,
     SearchModule,
+    CloudinaryModule,
   ],
   controllers: [AppController],
   providers: [AppService],
