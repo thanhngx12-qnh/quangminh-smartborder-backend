@@ -16,9 +16,10 @@ import {
   FileTypeValidator,
   MaxFileSizeValidator,
   DefaultValuePipe,
+  BadRequestException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express'; // <-- Import FileInterceptor
-import { CareersService } from './careers.service';
+import { CareersService, PaginatedJobPostingsResult } from './careers.service'; // Import thêm 
 import { CreateJobPostingDto } from './dto/create-job-posting.dto';
 import { UpdateJobPostingDto } from './dto/update-job-posting.dto';
 import { CreateJobApplicationDto } from './dto/create-job-application.dto';
@@ -27,7 +28,7 @@ import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Roles } from 'src/auth/decorators/roles.decorator';
 import { UserRole } from 'src/users/entities/user.entity';
-import { ApiTags, ApiBearerAuth, ApiQuery, ApiOperation } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth, ApiQuery, ApiOperation, ApiConsumes, ApiBody } from '@nestjs/swagger';
 
 @Controller('careers')
 export class CareersController {

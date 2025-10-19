@@ -1,3 +1,4 @@
+
 # dir: ~/quangminh-smart-border/backend/.dockerignore
 
 # Các dependencies, không cần sao chép, sẽ được cài đặt bên trong container
