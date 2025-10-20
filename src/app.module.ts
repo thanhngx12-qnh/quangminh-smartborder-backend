@@ -18,6 +18,7 @@ import { CareersModule } from './careers/careers.module';
 import { SearchModule } from './search/search.module';
 import { DataSource } from 'typeorm'; 
 import { CloudinaryModule } from './cloudinary/cloudinary.module';
+import { UploadModule } from './upload/upload.module';
 
 @Module({
   imports: [
@@ -63,6 +64,7 @@ import { CloudinaryModule } from './cloudinary/cloudinary.module';
     CareersModule,
     SearchModule,
     CloudinaryModule,
+    UploadModule,
   ],
   controllers: [AppController],
   providers: [AppService],
