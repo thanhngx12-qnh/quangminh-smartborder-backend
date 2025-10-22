@@ -1,7 +1,7 @@
 // dir: ~/quangminh-smart-border/backend/src/consignments/consignments.service.ts
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { In, Repository, ILike } from 'typeorm';
 import { Consignment } from './entities/consignment.entity';
 import { TrackingEvent } from './entities/tracking-event.entity';
 import { CreateConsignmentDto } from './dto/create-consignment.dto';

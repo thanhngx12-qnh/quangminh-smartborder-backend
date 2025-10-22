@@ -12,6 +12,8 @@ import {
   UseGuards, // <-- Import
   Request,  // <-- Import
   Query, 
+  DefaultValuePipe,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { ConsignmentsService } from './consignments.service';
 import { CreateConsignmentDto } from './dto/create-consignment.dto';
