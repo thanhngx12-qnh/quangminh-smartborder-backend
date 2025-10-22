@@ -6,13 +6,14 @@ import { TrackingEvent } from './entities/tracking-event.entity';
 import { ConsignmentsService } from './consignments.service';
 import { AiEtaService } from './ai-eta.service';
 import { ConsignmentsController } from './consignments.controller'; // Import controller
+import { ConsignmentsAdminController } from './consignments.admin.controller';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Consignment, TrackingEvent]),
   ],
   providers: [ConsignmentsService, AiEtaService],
-  controllers: [ConsignmentsController], // Đăng ký controller
+  controllers: [ConsignmentsController, ConsignmentsAdminController], // Đăng ký controller
   exports: [TypeOrmModule, ConsignmentsService],
 })
 export class ConsignmentsModule {}  
