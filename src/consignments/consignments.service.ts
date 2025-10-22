@@ -9,6 +9,9 @@ import { UpdateConsignmentDto } from './dto/update-consignment.dto';
 import { AddTrackingEventDto } from './dto/add-tracking-event.dto';
 import { AiEtaService } from './ai-eta.service'; // Import AI ETA Service
 import { User } from 'src/users/entities/user.entity'; 
+import { PaginatedResult } from 'src/common/types/pagination.types'; // Import kiểu phân trang
+
+export type PaginatedConsignmentsResult = PaginatedResult<Consignment>;
 
 @Injectable()
 export class ConsignmentsService {
@@ -196,5 +199,85 @@ export class ConsignmentsService {
     // Luôn trả về một mảng, ngay cả khi không tìm thấy.
     // Frontend sẽ tự quyết định hiển thị thông báo "Không tìm thấy".
     return consignments;
+  }
+
+  async findAllForAdmin(
+    page: number = 1,
+    limit: number = 10,
+    search?: string,
+  ): Promise<PaginatedConsignmentsResult> {
+    const skip = (page - 1) * limit;
+
+    // Xây dựng các điều kiện truy vấn
+    const whereConditions = {};
+    if (search) {
+      // Tìm kiếm không phân biệt chữ hoa/thường theo mã AWB
+      whereConditions['awb'] = ILike(`%${search}%`);
+    }
+
+    const [data, total] = await this.consignmentsRepository.findAndCount({
+      where: whereConditions,
+      order: { createdAt: 'DESC' },
+      skip: skip,
+      take: limit,
+      relations: {
+        events: true, // Nạp kèm các sự kiện
+      },
+    });
+
+    const lastPage = Math.ceil(total / limit);
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+      lastPage,
+    };
+  }
+
+  async findOneForAdmin(id: number): Promise<Consignment> {
+    const consignment = await this.consignmentsRepository.findOne({
+      where: { id },
+      relations: {
+        events: {
+          createdBy: true, // Nạp cả thông tin người tạo sự kiện
+        },
+      },
+      order: {
+        events: { eventTime: 'ASC' }
+      }
+    });
+
+    if (!consignment) {
+      throw new NotFoundException(`Consignment with ID #${id} not found.`);
+    }
+    return consignment;
+  }
+
+  /**
+   * (Admin) Cập nhật thông tin một vận đơn.
+   */
+  async updateForAdmin(id: number, updateDto: UpdateConsignmentDto): Promise<Consignment> {
+    const consignment = await this.consignmentsRepository.preload({
+      id,
+      ...updateDto,
+    });
+    
+    if (!consignment) {
+      throw new NotFoundException(`Consignment with ID #${id} not found.`);
+    }
+    
+    return this.consignmentsRepository.save(consignment);
+  }
+
+  /**
+   * (Admin) Xóa một vận đơn.
+   */
+  async removeForAdmin(id: number): Promise<void> {
+    const result = await this.consignmentsRepository.delete(id);
+    if (result.affected === 0) {
+      throw new NotFoundException(`Consignment with ID #${id} not found.`);
+    }
   }
 }

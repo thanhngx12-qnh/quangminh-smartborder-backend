@@ -106,4 +106,50 @@ export class ConsignmentsController {
     // Trả về response đã được chuẩn hóa bởi Interceptor của chúng ta
     return this.consignmentsService.findByAwbs(awbs);
   }
+
+
+  // THÊM ENDPOINT MỚI CHO ADMIN Ở ĐÂY
+  @Get('admin/consignments') // <-- URL mới
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.OPS)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get a paginated list of all consignments (For Admin)' })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiQuery({ name: 'search', required: false, type: String, description: 'Search by AWB' })
+  findAllForAdmin(
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
+    @Query('search') search?: string,
+  ) {
+    return this.consignmentsService.findAllForAdmin(page, limit, search);
+  }
+
+  @Get('admin/consignments/:id') // <-- URL mới
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.OPS)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get a single consignment by ID (For Admin)' })
+  findOneForAdmin(@Param('id', ParseIntPipe) id: number) {
+    return this.consignmentsService.findOneForAdmin(id);
+  }
+  
+  @Patch('admin/consignments/:id') // <-- URL mới
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.OPS)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update a consignment (For Admin)' })
+  updateForAdmin(@Param('id', ParseIntPipe) id: number, @Body() updateDto: UpdateConsignmentDto) {
+    return this.consignmentsService.updateForAdmin(id, updateDto);
+  }
+  
+  @Delete('admin/consignments/:id') // <-- URL mới
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.OPS) // Cân nhắc: có thể chỉ cho ADMIN xóa
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Delete a consignment (For Admin)' })
+  @HttpCode(HttpStatus.NO_CONTENT)
+  removeForAdmin(@Param('id', ParseIntPipe) id: number): Promise<void> {
+    return this.consignmentsService.removeForAdmin(id);
+  }
 }
