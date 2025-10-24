@@ -253,4 +253,55 @@ export class ConsignmentsService {
 
     return { data, total, page, limit, lastPage };
   }
+
+  async createForAdmin(createDto: CreateConsignmentDto): Promise<Consignment> {
+    const existing = await this.consignmentsRepository.findOneBy({ awb: createDto.awb });
+    if (existing) {
+      throw new BadRequestException(`Mã vận đơn (AWB) ${createDto.awb} đã tồn tại.`);
+    }
+    const newConsignment = this.consignmentsRepository.create(createDto);
+    return this.consignmentsRepository.save(newConsignment);
+  }
+
+  async findOneForAdmin(id: number): Promise<Consignment> {
+    const consignment = await this.consignmentsRepository.findOne({
+      where: { id },
+      relations: ['events'],
+      order: { events: { eventTime: 'ASC' } }
+    });
+    if (!consignment) {
+      throw new NotFoundException(`Không tìm thấy vận đơn với ID ${id}`);
+    }
+    return consignment;
+  }
+
+  async updateForAdmin(id: number, updateDto: UpdateConsignmentDto): Promise<Consignment> {
+    // Dùng preload để load entity và merge các thay đổi, nhưng không lưu ngay
+    const consignment = await this.consignmentsRepository.preload({ id, ...updateDto });
+    if (!consignment) {
+      throw new NotFoundException(`Không tìm thấy vận đơn với ID ${id} để cập nhật`);
+    }
+    
+    // Nếu có events được gửi lên, xử lý riêng
+    if (updateDto.events) {
+      // Xóa tất cả các event cũ liên quan đến vận đơn này
+      await this.trackingEventsRepository.delete({ consignment: { id } });
+      // Tạo các event mới từ DTO
+      const newEvents = updateDto.events.map(eventDto => 
+        this.trackingEventsRepository.create({ ...eventDto, consignment })
+      );
+      // Lưu các event mới vào DB và gán lại cho consignment
+      consignment.events = await this.trackingEventsRepository.save(newEvents);
+    }
+    
+    // Lưu lại consignment với tất cả các thay đổi
+    return this.consignmentsRepository.save(consignment);
+  }
+
+  async removeForAdmin(id: number): Promise<void> {
+    const result = await this.consignmentsRepository.delete(id);
+    if (result.affected === 0) {
+      throw new NotFoundException(`Không tìm thấy vận đơn với ID ${id}`);
+    }
+  }
 }
