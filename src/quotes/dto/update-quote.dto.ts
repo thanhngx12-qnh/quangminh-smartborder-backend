@@ -1,19 +1,18 @@
 // dir: ~/quangminh-smart-border/backend/src/quotes/dto/update-quote.dto.ts
+import { PartialType, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsString, IsOptional, IsNumber } from 'class-validator';
-import { PartialType } from '@nestjs/mapped-types';
 import { CreateQuoteDto } from './create-quote.dto';
 
-// Kế thừa từ CreateQuoteDto để có các trường chung
 export class UpdateQuoteDto extends PartialType(CreateQuoteDto) {
+  @ApiPropertyOptional({ description: "Trạng thái mới của yêu cầu", example: "CONTACTED" })
   @IsString()
   @IsOptional()
-  status?: string; // Trạng thái cập nhật (ví dụ: 'APPROVED', 'REJECTED', 'CONTACTED')
+  status?: string;
 
-  @IsNumber()
-  @IsOptional()
-  aiSuggestedPrice?: number; // Có thể cập nhật lại hoặc ghi đè giá gợi ý
-
+  @ApiPropertyOptional({ description: "Ghi chú của quản trị viên" })
   @IsString()
   @IsOptional()
-  adminNotes?: string; // Ghi chú của quản trị viên
+  adminNotes?: string;
+  
+  // Các trường khác như customerName, email cũng có thể được cập nhật nếu cần
 }

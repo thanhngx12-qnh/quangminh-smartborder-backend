@@ -5,6 +5,7 @@ import { Quote } from './entities/quote.entity';
 import { QuotesService } from './quotes.service';
 import { QuotesController } from './quotes.controller';
 import { Service } from 'src/services/entities/service.entity'; // <-- Import
+import { QuotesAdminController } from './quotes.admin.controller'; 
 
 @Module({
   imports: [

@@ -1,11 +1,15 @@
 // dir: ~/quangminh-smart-border/backend/src/quotes/quotes.service.ts
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository,ILike } from 'typeorm';
 import { Quote } from './entities/quote.entity';
 import { CreateQuoteDto } from './dto/create-quote.dto';
 import { UpdateQuoteDto } from './dto/update-quote.dto';
 import { Service } from 'src/services/entities/service.entity'; // Import Service entity
+import { PaginatedResult } from 'src/common/types/pagination.types';
+import { QueryQuoteDto } from './dto/query-quote.dto';
+
+export type PaginatedQuotesResult = PaginatedResult<Quote>;
 
 @Injectable()
 export class QuotesService {
@@ -44,6 +48,43 @@ export class QuotesService {
     return this.quotesRepository.save(newQuote);
   }
 
+  // HÀM MỚI CHO ADMIN (thay thế hàm `findAll` cũ)
+  async findAllForAdmin(queryDto: QueryQuoteDto): Promise<PaginatedQuotesResult> {
+    const { page, limit, q, sortBy, sortOrder, status } = queryDto;
+
+    const allowedSortBy = ['id', 'customerName', 'email', 'status', 'createdAt'];
+    if (sortBy && !allowedSortBy.includes(sortBy)) {
+      throw new BadRequestException(`Cột sắp xếp không hợp lệ: ${sortBy}`);
+    }
+
+    const skip = (page - 1) * limit;
+    
+    // Sử dụng `where` để có thể kết hợp điều kiện OR cho tìm kiếm
+    const where: any = {};
+
+    if (q) {
+      where.customerName = ILike(`%${q}%`); // Tìm kiếm không phân biệt hoa thường
+      // Có thể thêm tìm kiếm theo email
+      // where = [ { customerName: ILike(`%${q}%`) }, { email: ILike(`%${q}%`) } ];
+    }
+    
+    if (status) {
+      where.status = status;
+    }
+
+    const [data, total] = await this.quotesRepository.findAndCount({
+      where,
+      relations: { service: { translations: true } }, // Nạp kèm thông tin dịch vụ
+      order: sortBy ? { [sortBy]: sortOrder } : { createdAt: 'DESC' },
+      skip,
+      take: limit,
+    });
+    
+    const lastPage = Math.ceil(total / limit);
+
+    return { data, total, page, limit, lastPage };
+  }
+
   /**
    * Lấy tất cả yêu cầu báo giá (cho Admin), bao gồm cả thông tin Service liên quan.
    */
@@ -56,6 +97,17 @@ export class QuotesService {
       where: status ? { status } : {},
       order: { createdAt: 'DESC' },
     });
+  }
+
+  async findOneForAdmin(id: number): Promise<Quote> {
+    const quote = await this.quotesRepository.findOne({
+      where: { id },
+      relations: { service: { translations: true } },
+    });
+    if (!quote) {
+      throw new NotFoundException(`Không tìm thấy yêu cầu báo giá với ID ${id}`);
+    }
+    return quote;
   }
 
   /**
@@ -131,5 +183,28 @@ export class QuotesService {
     }
     const variance = Math.random() * 200 - 100;
     return parseFloat((basePrice + variance).toFixed(2));
+  }
+
+  // Hàm `update` cũ sẽ trở thành `updateForAdmin`
+  async updateForAdmin(id: number, updateDto: UpdateQuoteDto): Promise<Quote> {
+    const quote = await this.quotesRepository.preload({ id, ...updateDto });
+    if (!quote) {
+      throw new NotFoundException(`Không tìm thấy yêu cầu báo giá với ID ${id} để cập nhật`);
+    }
+
+    // Nếu muốn thay đổi service của quote
+    if (updateDto.serviceId) {
+      // Logic gán service (tương tự như lần trước chúng ta đã sửa)
+    }
+
+    return this.quotesRepository.save(quote);
+  }
+
+  // Hàm `remove` cũ sẽ trở thành `removeForAdmin`
+  async removeForAdmin(id: number): Promise<void> {
+    const result = await this.quotesRepository.delete(id);
+    if (result.affected === 0) {
+      throw new NotFoundException(`Không tìm thấy yêu cầu báo giá với ID ${id}`);
+    }
   }
 }
