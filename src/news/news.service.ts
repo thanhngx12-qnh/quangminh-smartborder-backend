@@ -1,11 +1,13 @@
 // dir: ~/quangminh-smart-border/backend/src/news/news.service.ts
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { News, NewsStatus } from './entities/news.entity';
 import { NewsTranslation } from './entities/news-translation.entity';
 import { CreateNewsDto } from './dto/create-news.dto';
 import { UpdateNewsDto } from './dto/update-news.dto';
+import { PaginatedResult } from 'src/common/types/pagination.types';
+import { QueryNewsDto } from './dto/query-news.dto';
 
 export interface PaginatedNewsResult {
   data: News[];
@@ -14,6 +16,8 @@ export interface PaginatedNewsResult {
   limit: number;
   lastPage: number;
 }
+
+export type PaginatedNewsResult_ = PaginatedResult<News>;
 
 @Injectable()
 export class NewsService {
@@ -53,6 +57,60 @@ export class NewsService {
     }
 
     news.translations = savedTranslations;
+    return news;
+  }
+
+  // HÀM MỚI CHO ADMIN PANEL
+  async findAllForAdmin(queryDto: QueryNewsDto): Promise<PaginatedNewsResult_> {
+    const { page, limit, q, sortBy, sortOrder, status, featured } = queryDto;
+
+    const allowedSortBy = ['id', 'status', 'featured', 'publishedAt', 'createdAt'];
+    if (sortBy && !allowedSortBy.includes(sortBy)) {
+      throw new BadRequestException(`Cột sắp xếp không hợp lệ: ${sortBy}`);
+    }
+
+    const skip = (page - 1) * limit;
+
+    const queryBuilder = this.newsRepository.createQueryBuilder('news');
+
+    if (q) {
+      // Join và tìm kiếm trong title của bản dịch
+      queryBuilder
+        .innerJoin('news.translations', 'translation')
+        .where('translation.title ILIKE :q', { q: `%${q}%` });
+    }
+
+    if (status) {
+      queryBuilder.andWhere('news.status = :status', { status });
+    }
+
+    if (featured !== undefined) {
+      queryBuilder.andWhere('news.featured = :featured', { featured });
+    }
+
+    const total = await queryBuilder.getCount();
+    
+    queryBuilder
+      .orderBy(`news.${sortBy || 'createdAt'}`, sortOrder)
+      .leftJoinAndSelect('news.translations', 'translations') // Luôn lấy tất cả bản dịch
+      .skip(skip)
+      .take(limit);
+
+    const data = await queryBuilder.getMany();
+    const lastPage = Math.ceil(total / limit);
+
+    return { data, total, page, limit, lastPage };
+  }
+
+  // HÀM MỚI CHO ADMIN: Tìm theo ID, không quan tâm status
+  async findOneForAdmin(id: number): Promise<News> {
+    const news = await this.newsRepository.findOne({
+        where: { id },
+        relations: ['translations'],
+    });
+    if (!news) {
+        throw new NotFoundException(`Không tìm thấy bài viết với ID ${id}`);
+    }
     return news;
   }
 

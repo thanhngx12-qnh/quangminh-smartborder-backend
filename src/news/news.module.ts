@@ -5,13 +5,14 @@ import { News } from './entities/news.entity';
 import { NewsTranslation } from './entities/news-translation.entity';
 import { NewsService } from './news.service';
 import { NewsController } from './news.controller'; // Đã được CLI thêm vào
+import { NewsAdminController } from './news.admin.controller';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([News, NewsTranslation]),
   ],
   providers: [NewsService],
-  controllers: [NewsController], // Đã được CLI thêm vào
+  controllers: [NewsController, NewsAdminController], // Đã được CLI thêm vào
   exports: [TypeOrmModule, NewsService],
 })
 export class NewsModule {}
