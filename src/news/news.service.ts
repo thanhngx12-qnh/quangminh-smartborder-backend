@@ -192,46 +192,50 @@ export class NewsService {
    * Cập nhật một bài viết.
    */
   async update(id: number, updateNewsDto: UpdateNewsDto): Promise<News> {
-    const { translations, ...newsData } = updateNewsDto;
+    // --- SỬA LẠI LOGIC Ở ĐÂY ---
     
-    const news = await this.newsRepository.findOne({
+    // 1. Tìm bài viết cần cập nhật
+    const newsToUpdate = await this.newsRepository.findOne({
       where: { id },
-      relations: ['translations'], // Phải load cả relations để xử lý cập nhật bản dịch
+      relations: ['translations'],
     });
     
-    if (!news) {
-      throw new NotFoundException(`News article with ID ${id} not found.`);
+    if (!newsToUpdate) {
+      throw new NotFoundException(`Không tìm thấy bài viết với ID ${id}.`);
     }
 
-    // Xử lý logic thời gian xuất bản khi chuyển trạng thái
-    if (newsData.status === NewsStatus.PUBLISHED && !news.publishedAt) {
-      newsData.publishedAt = new Date().toISOString();
+    // 2. Tách riêng các phần của DTO
+    const { translations, ...newsDataToUpdate } = updateNewsDto;
+
+    // 3. Xử lý logic thời gian xuất bản (chỉ khi status được gửi lên)
+    if (newsDataToUpdate.status === NewsStatus.PUBLISHED && !newsToUpdate.publishedAt) {
+      newsDataToUpdate.publishedAt = new Date().toISOString();
     }
     
-    this.newsRepository.merge(news, {
-      ...newsData,
-      publishedAt: newsData.publishedAt ? new Date(newsData.publishedAt) : news.publishedAt,
-    });
+    // 4. Merge các thay đổi từ DTO vào đối tượng đã có
+    // TypeORM's merge rất thông minh, nó sẽ bỏ qua các trường `undefined` trong DTO
+    this.newsRepository.merge(newsToUpdate, newsDataToUpdate);
+
+    // 5. Lưu lại đối tượng đã được merge
+    await this.newsRepository.save(newsToUpdate);
     
-    await this.newsRepository.save(news);
-    
-    // Cập nhật các bản dịch
+    // 6. Cập nhật các bản dịch (nếu có)
     if (translations) {
       for (const translationDto of translations) {
-        let existing = news.translations.find(t => t.locale === translationDto.locale);
-        if (existing) {
-          // Cập nhật
-          this.translationsRepository.merge(existing, translationDto);
-          await this.translationsRepository.save(existing);
+        let existingTranslation = newsToUpdate.translations.find(t => t.locale === translationDto.locale);
+        if (existingTranslation) {
+          this.translationsRepository.merge(existingTranslation, translationDto);
+          await this.translationsRepository.save(existingTranslation);
         } else {
-          // Tạo mới
-          const newTranslation = this.translationsRepository.create({ ...translationDto, news });
+          const newTranslation = this.translationsRepository.create({ ...translationDto, news: newsToUpdate });
           await this.translationsRepository.save(newTranslation);
         }
       }
     }
 
-    return this.findOne(id); // Trả về bài viết đã được cập nhật đầy đủ
+    // 7. Trả về bài viết đã được cập nhật hoàn chỉnh
+    // Gọi findOneForAdmin để đảm bảo tất cả relations đều được load lại
+    return this.findOneForAdmin(id);
   }
 
   /**
