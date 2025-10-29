@@ -7,6 +7,7 @@ import {
   UpdateDateColumn,
   Index,
   BeforeInsert, // Import hook BeforeInsert
+  BeforeUpdate,
 } from 'typeorm';
 import * as bcrypt from 'bcrypt'; // Import bcrypt
 
@@ -51,5 +52,12 @@ export class User {
     if (this.password) {
       this.password = await bcrypt.hash(this.password, 10); // Băm mật khẩu với salt 10 vòng
     }
+  }
+
+  // THÊM HOOK NÀY: Chạy trước khi UPDATE
+  @BeforeUpdate()
+  async hashPasswordOnUpdate() {
+    // Chỉ hash lại nếu trường password được cung cấp (thay đổi)
+    // Cần một cách để kiểm tra điều này, hoặc băm thủ công trong service an toàn hơn.
   }
 }
