@@ -1,5 +1,5 @@
 // dir: ~/quangminh-smart-border/backend/src/services/services.service.ts
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, IsNull, Not } from 'typeorm';
 import { Service } from './entities/service.entity';
@@ -7,6 +7,7 @@ import { ServiceTranslation } from './entities/service-translation.entity';
 import { CreateServiceDto } from './dto/create-service.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
 import { PaginatedResult } from 'src/common/types/pagination.types';
+import { QueryServiceDto } from './dto/query-service.dto'; 
 
 // Export kiểu dữ liệu cụ thể cho Service
 export type PaginatedServiceResult = PaginatedResult<Service>;
@@ -222,5 +223,53 @@ export class ServicesService {
     if (result.affected === 0) {
       throw new NotFoundException(`Service with ID ${id} not found.`);
     }
+  }
+
+  // --- HÀM MỚI DÀNH RIÊNG CHO ADMIN PANEL ---
+  async findAllForAdmin(queryDto: QueryServiceDto): Promise<PaginatedServiceResult> {
+    const { page, limit, q, sortBy, sortOrder, featured, category } = queryDto;
+    const skip = (page - 1) * limit;
+
+    const allowedSortBy = ['id', 'code', 'category', 'featured', 'createdAt'];
+    if (sortBy && !allowedSortBy.includes(sortBy)) {
+      throw new BadRequestException(`Cột sắp xếp không hợp lệ: ${sortBy}`);
+    }
+
+    const queryBuilder = this.servicesRepository.createQueryBuilder('service');
+    
+    // Nếu có query tìm kiếm `q`
+    if (q) {
+      // Dùng innerJoin để chỉ lấy các service có translation khớp
+      // Dùng leftJoin để lấy tất cả service có service-level fields khớp
+      queryBuilder.leftJoin('service.translations', 'translation');
+      queryBuilder.where(
+        '(service.code ILIKE :q OR service.category ILIKE :q OR translation.title ILIKE :q)',
+        { q: `%${q}%` }
+      );
+    }
+    
+    // Lọc theo `featured`
+    if (featured !== undefined) {
+      queryBuilder.andWhere('service.featured = :featured', { featured });
+    }
+    // Lọc theo `category`
+    if (category) {
+      queryBuilder.andWhere('service.category = :category', { category });
+    }
+    
+    // Đếm tổng số kết quả
+    const total = await queryBuilder.getCount();
+
+    // Áp dụng sắp xếp và phân trang
+    queryBuilder
+      .orderBy(`service.${sortBy || 'createdAt'}`, sortOrder)
+      .leftJoinAndSelect('service.translations', 'all_translations') // Luôn nạp tất cả bản dịch
+      .skip(skip)
+      .take(limit);
+
+    const data = await queryBuilder.getMany();
+    const lastPage = Math.ceil(total / limit);
+
+    return { data, total, page, limit, lastPage };
   }
 }

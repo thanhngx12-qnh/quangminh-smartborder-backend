@@ -28,20 +28,6 @@ import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';     // <-- Import
 export class ServicesController {
   constructor(private readonly servicesService: ServicesService) {}
 
-  /**
-   * @route POST /services
-   * @description Tạo dịch vụ mới (Yêu cầu quyền ADMIN hoặc CONTENT_MANAGER).
-   * @param createServiceDto Dữ liệu dịch vụ và bản dịch từ request body.
-   * @returns Dịch vụ đã tạo.
-   */
-  @Post()
-  @UseGuards(JwtAuthGuard) // Áp dụng cả hai Guard
-  // @Roles(UserRole.ADMIN, UserRole.CONTENT_MANAGER) // Chỉ định các vai trò được phép
-  @HttpCode(HttpStatus.CREATED)
-  async create(@Body() createServiceDto: CreateServiceDto): Promise<Service> {
-    return this.servicesService.create(createServiceDto);
-  }
-
   @Get()
   // THÊM CÁC DECORATOR Ở ĐÂY
   @ApiQuery({ name: 'page', required: false, type: Number, description: 'Số trang' })
@@ -91,34 +77,4 @@ export class ServicesController {
     return this.servicesService.findOneBySlug(locale, slug);
   }
 
-  /**
-   * @route PATCH /services/:id
-   * @description Cập nhật dịch vụ (Yêu cầu quyền ADMIN hoặc CONTENT_MANAGER).
-   * @param id ID của dịch vụ cần cập nhật.
-   * @param updateServiceDto Dữ liệu cập nhật từ request body.
-   * @returns Dịch vụ đã cập nhật.
-   */
-  @Patch(':id')
-  @UseGuards(JwtAuthGuard)
-  // @Roles(UserRole.ADMIN, UserRole.CONTENT_MANAGER)
-  @HttpCode(HttpStatus.OK)
-  async update(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() updateServiceDto: UpdateServiceDto,
-  ): Promise<Service> {
-    return this.servicesService.update(id, updateServiceDto);
-  }
-
-  /**
-   * @route DELETE /services/:id
-   * @description Xóa dịch vụ (Chỉ yêu cầu quyền ADMIN).
-   * @param id ID của dịch vụ cần xóa.
-   */
-  @Delete(':id')
-  @UseGuards(JwtAuthGuard)
-  // @Roles(UserRole.ADMIN) // Chỉ ADMIN mới có quyền xóa
-  @HttpCode(HttpStatus.NO_CONTENT)
-  async remove(@Param('id', ParseIntPipe) id: number): Promise<void> {
-    await this.servicesService.remove(id);
-  }
 }
