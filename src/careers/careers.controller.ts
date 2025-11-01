@@ -17,6 +17,9 @@ import {
   MaxFileSizeValidator,
   DefaultValuePipe,
   BadRequestException,
+  ValidationPipe, 
+  HttpCode, 
+  HttpStatus,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express'; // <-- Import FileInterceptor
 import { CareersService, PaginatedJobPostingsResult } from './careers.service'; // Import thêm 
@@ -29,35 +32,12 @@ import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Roles } from 'src/auth/decorators/roles.decorator';
 import { UserRole } from 'src/users/entities/user.entity';
 import { ApiTags, ApiBearerAuth, ApiQuery, ApiOperation, ApiConsumes, ApiBody } from '@nestjs/swagger';
+import { QueryJobPostingDto } from './dto/query-job-posting.dto';
+import { QueryJobApplicationDto } from './dto/query-job-application.dto';
 
 @Controller('careers')
 export class CareersController {
   constructor(private readonly careersService: CareersService) {}
-
-  // --- Job Posting Endpoints (Admin) ---
-
-  @Post('postings')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN)
-  createJobPosting(@Body() createJobPostingDto: CreateJobPostingDto) {
-    return this.careersService.createJobPosting(createJobPostingDto);
-  }
-
-  @Get('postings/all')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get all job postings (paginated) - Admin only' })
-  @ApiQuery({ name: 'page', required: false, type: Number })
-  @ApiQuery({ name: 'limit', required: false, type: Number })
-  @ApiQuery({ name: 'status', required: false, enum: JobStatus })
-  findAllJobPostingsForAdmin(
-    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
-    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
-    @Query('status') status?: JobStatus,
-  ) {
-    return this.careersService.findAllJobPostings(page, limit, status);
-  }
   
   // --- Public Job Posting Endpoints ---
   @Get('postings')
@@ -74,25 +54,6 @@ export class CareersController {
   @Get('postings/:id')
   findOneJobPosting(@Param('id', ParseIntPipe) id: number) {
     return this.careersService.findOneJobPosting(id);
-  }
-
-  // --- Admin Job Posting Management ---
-
-  @Patch('postings/:id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN)
-  updateJobPosting(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() updateJobPostingDto: UpdateJobPostingDto,
-  ) {
-    return this.careersService.updateJobPosting(id, updateJobPostingDto);
-  }
-
-  @Delete('postings/:id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN)
-  removeJobPosting(@Param('id', ParseIntPipe) id: number) {
-    return this.careersService.removeJobPosting(id);
   }
 
   // --- Job Application Endpoints ---
@@ -127,18 +88,79 @@ export class CareersController {
     return this.careersService.applyForJob(id, createApplicationDto, file.path);
   }
 
-  // --- Admin Job Application Management ---
+  @Get('postings/all')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.CONTENT_MANAGER) // Mở rộng cho Content Manager
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '[Admin] Lấy danh sách tất cả tin tuyển dụng' })
+  findAllJobPostingsForAdmin(
+    @Query(new ValidationPipe({ transform: true, whitelist: true })) 
+    queryDto: QueryJobPostingDto
+  ) {
+    return this.careersService.findAllJobPostingsForAdmin(queryDto);
+  }
+
+  @Post('postings')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.CONTENT_MANAGER)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '[Admin] Tạo tin tuyển dụng mới' })
+  createJobPosting(@Body() createDto: CreateJobPostingDto) {
+    return this.careersService.createJobPosting(createDto);
+  }
+
+  // === Job Applications ===
+  
   @Get('applications')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
-  findAllApplications() {
-    return this.careersService.findAllApplications();
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '[Admin] Lấy danh sách hồ sơ ứng tuyển' })
+  findAllApplicationsForAdmin(
+    @Query(new ValidationPipe({ transform: true, whitelist: true })) 
+    queryDto: QueryJobApplicationDto
+  ) {
+    return this.careersService.findAllApplicationsForAdmin(queryDto);
   }
 
   @Get('applications/:id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
-  findOneApplication(@Param('id', ParseIntPipe) id: number) {
-    return this.careersService.findOneApplication(id);
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '[Admin] Lấy chi tiết một hồ sơ ứng tuyển' })
+  findOneApplicationForAdmin(@Param('id', ParseIntPipe) id: number) {
+    return this.careersService.findOneApplicationForAdmin(id);
+  }
+  
+  @Delete('applications/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: '[Admin] Xóa một hồ sơ ứng tuyển' })
+  removeApplicationForAdmin(@Param('id', ParseIntPipe) id: number) {
+    return this.careersService.removeApplicationForAdmin(id);
+  }
+
+  @Patch('postings/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.CONTENT_MANAGER)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '[Admin] Cập nhật tin tuyển dụng' })
+  updateJobPosting(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateJobPostingDto: UpdateJobPostingDto,
+  ) {
+    return this.careersService.updateJobPosting(id, updateJobPostingDto);
+  }
+
+  @Delete('postings/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN) // Chỉ Admin được xóa
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.NO_CONTENT) // Chuẩn RESTful cho DELETE thành công
+  @ApiOperation({ summary: '[Admin] Xóa tin tuyển dụng' })
+  removeJobPosting(@Param('id', ParseIntPipe) id: number): Promise<void> {
+    return this.careersService.removeJobPosting(id);
   }
 }

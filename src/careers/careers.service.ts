@@ -1,14 +1,18 @@
 // dir: ~/quangminh-smart-border/backend/src/careers/careers.service.ts
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, ILike, FindOptionsWhere } from 'typeorm';
 import { JobPosting, JobStatus } from './entities/job-posting.entity';
 import { JobApplication } from './entities/job-application.entity';
 import { CreateJobPostingDto } from './dto/create-job-posting.dto';
 import { UpdateJobPostingDto } from './dto/update-job-posting.dto';
 import { PaginatedResult } from 'src/common/types/pagination.types'; 
+import { QueryJobPostingDto } from './dto/query-job-posting.dto';
+import { QueryJobApplicationDto } from './dto/query-job-application.dto';
+import { CreateJobApplicationDto } from './dto/create-job-application.dto';
 
 export type PaginatedJobPostingsResult = PaginatedResult<JobPosting>;
+export type PaginatedJobApplicationsResult = PaginatedResult<JobApplication>;
 @Injectable()
 export class CareersService {
   constructor(
@@ -23,6 +27,29 @@ export class CareersService {
   createJobPosting(createJobPostingDto: CreateJobPostingDto): Promise<JobPosting> {
     const jobPosting = this.jobPostingsRepository.create(createJobPostingDto);
     return this.jobPostingsRepository.save(jobPosting);
+  }
+
+  // Nâng cấp hàm `findAllJobPostings` thành hàm cho admin.
+  async findAllJobPostingsForAdmin(queryDto: QueryJobPostingDto): Promise<PaginatedJobPostingsResult> {
+    const { page, limit, q, sortBy, sortOrder, status } = queryDto;
+    const skip = (page - 1) * limit;
+
+    const allowedSortBy = ['id', 'title', 'location', 'status', 'createdAt'];
+    if (sortBy && !allowedSortBy.includes(sortBy)) {
+      throw new BadRequestException(`Cột sắp xếp không hợp lệ: ${sortBy}`);
+    }
+
+    const where: FindOptionsWhere<JobPosting> = {};
+    if (q) where.title = ILike(`%${q}%`);
+    if (status) where.status = status;
+
+    const [data, total] = await this.jobPostingsRepository.findAndCount({
+      where,
+      order: sortBy ? { [sortBy]: sortOrder } : { createdAt: 'DESC' },
+      skip, take: limit,
+    });
+    
+    return { data, total, page, limit, lastPage: Math.ceil(total / limit) };
   }
 
   async findAllJobPostings(
@@ -99,15 +126,47 @@ export class CareersService {
     return this.jobApplicationsRepository.save(application);
   }
 
-  findAllApplications(): Promise<JobApplication[]> {
-    return this.jobApplicationsRepository.find({ order: { appliedAt: 'DESC' }, relations: ['jobPosting'] });
+  async findAllApplicationsForAdmin(queryDto: QueryJobApplicationDto): Promise<PaginatedJobApplicationsResult> {
+    const { page, limit, q, sortBy, sortOrder, jobPostingId } = queryDto;
+    const skip = (page - 1) * limit;
+
+    const allowedSortBy = ['id', 'applicantName', 'email', 'appliedAt'];
+    if (sortBy && !allowedSortBy.includes(sortBy)) {
+        throw new BadRequestException(`Cột sắp xếp không hợp lệ: ${sortBy}`);
+    }
+
+    const queryBuilder = this.jobApplicationsRepository.createQueryBuilder('application')
+      .leftJoinAndSelect('application.jobPosting', 'jobPosting');
+
+    if (q) {
+      queryBuilder.where('(application.applicantName ILIKE :q OR application.email ILIKE :q)', { q: `%${q}%` });
+    }
+    if (jobPostingId) {
+      queryBuilder.andWhere('application.jobPostingId = :jobPostingId', { jobPostingId });
+    }
+
+    const total = await queryBuilder.getCount();
+    
+    queryBuilder.orderBy(`application.${sortBy || 'appliedAt'}`, sortOrder);
+    const data = await queryBuilder.skip(skip).take(limit).getMany();
+
+    return { data, total, page, limit, lastPage: Math.ceil(total / limit) };
   }
 
-  async findOneApplication(id: number): Promise<JobApplication> {
+  // TẠO MỚI hàm này. Hàm cũ sẽ được đổi tên
+  async findOneApplicationForAdmin(id: number): Promise<JobApplication> {
     const application = await this.jobApplicationsRepository.findOne({ where: { id }, relations: ['jobPosting'] });
-    if(!application){
-      throw new NotFoundException(`Application with ID ${id} not found.`);
+    if (!application) {
+      throw new NotFoundException(`Không tìm thấy hồ sơ với ID ${id}`);
     }
     return application;
+  }
+  
+  // TẠO MỚI
+  async removeApplicationForAdmin(id: number): Promise<void> {
+    const result = await this.jobApplicationsRepository.delete(id);
+    if (result.affected === 0) {
+        throw new NotFoundException(`Không tìm thấy hồ sơ với ID ${id}`);
+    }
   }
 }
