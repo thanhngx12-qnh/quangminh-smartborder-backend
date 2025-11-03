@@ -19,6 +19,7 @@ import { SearchModule } from './search/search.module';
 import { DataSource } from 'typeorm'; 
 import { CloudinaryModule } from './cloudinary/cloudinary.module';
 import { UploadModule } from './upload/upload.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -65,6 +66,7 @@ import { UploadModule } from './upload/upload.module';
     SearchModule,
     CloudinaryModule,
     UploadModule,
+    DashboardModule,
   ],
   controllers: [AppController],
   providers: [AppService],
