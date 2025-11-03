@@ -90,19 +90,23 @@ export class CareersController {
 
   @Get('postings/all')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.CONTENT_MANAGER)
   @ApiBearerAuth()
   @ApiOperation({ summary: '[Admin] Lấy danh sách tất cả tin tuyển dụng' })
+  // Decorator của Swagger vẫn giữ nguyên, rất tốt cho tài liệu
   @ApiQuery({ name: 'q', required: false, type: String })
   @ApiQuery({ name: 'status', required: false, enum: JobStatus })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
   findAllJobPostingsForAdmin(
-    // Dùng DTO cho các filter string/enum
-    @Query() queryDto: QueryJobPostingDto,
-    // Dùng Pipe riêng cho các filter number
+    // SỬA LẠI HOÀN TOÀN:
+    // 1. Nhận các filter (string, enum) vào DTO
+    @Query() queryDto: QueryJobPostingDto, 
+    // 2. Nhận các tham số cần parse riêng
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
-    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number
   ) {
-    // Gộp lại
+    // 3. Gộp chúng lại trước khi gửi vào service
     queryDto.page = page;
     queryDto.limit = limit;
     return this.careersService.findAllJobPostingsForAdmin(queryDto);
