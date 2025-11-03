@@ -90,13 +90,15 @@ export class CareersController {
 
   @Get('postings/all')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.CONTENT_MANAGER) // Mở rộng cho Content Manager
+  @Roles(UserRole.ADMIN, UserRole.CONTENT_MANAGER)
   @ApiBearerAuth()
   @ApiOperation({ summary: '[Admin] Lấy danh sách tất cả tin tuyển dụng' })
+  // SỬA LẠI ĐÂY
   findAllJobPostingsForAdmin(
     @Query(new ValidationPipe({ transform: true, whitelist: true })) 
     queryDto: QueryJobPostingDto
   ) {
+    // Truyền thẳng DTO vào service
     return this.careersService.findAllJobPostingsForAdmin(queryDto);
   }
 
