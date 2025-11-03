@@ -88,7 +88,7 @@ export class CareersController {
     return this.careersService.applyForJob(id, createApplicationDto, file.path);
   }
 
-  @Get('postings/all')
+  @Get('postingss/')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.CONTENT_MANAGER)
   @ApiBearerAuth()
