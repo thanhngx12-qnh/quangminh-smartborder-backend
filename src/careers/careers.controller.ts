@@ -93,14 +93,21 @@ export class CareersController {
   @Roles(UserRole.ADMIN, UserRole.CONTENT_MANAGER)
   @ApiBearerAuth()
   @ApiOperation({ summary: '[Admin] Lấy danh sách tất cả tin tuyển dụng' })
-  // SỬA LẠI ĐÂY
+  // Decorator của Swagger vẫn giữ nguyên
+  @ApiQuery({ name: 'q', required: false, type: String })
+  @ApiQuery({ name: 'status', required: false, enum: JobStatus })
   findAllJobPostingsForAdmin(
-    @Query(new ValidationPipe({ transform: true, whitelist: true })) 
-    queryDto: QueryJobPostingDto
+    // SỬA LẠI HOÀN TOÀN CÁCH NHẬN QUERY
+    @Query() queryDto: QueryJobPostingDto,
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
   ) {
-    // Truyền thẳng DTO vào service
+    // Gộp các tham số đã parse vào DTO
+    queryDto.page = page;
+    queryDto.limit = limit;
     return this.careersService.findAllJobPostingsForAdmin(queryDto);
   }
+
 
   @Post('postings')
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -118,10 +125,18 @@ export class CareersController {
   @Roles(UserRole.ADMIN)
   @ApiBearerAuth()
   @ApiOperation({ summary: '[Admin] Lấy danh sách hồ sơ ứng tuyển' })
+  @ApiQuery({ name: 'q', required: false, type: String })
+  @ApiQuery({ name: 'jobPostingId', required: false, type: Number })
   findAllApplicationsForAdmin(
-    @Query(new ValidationPipe({ transform: true, whitelist: true })) 
-    queryDto: QueryJobApplicationDto
+    // Áp dụng cách sửa tương tự
+    @Query() queryDto: QueryJobApplicationDto,
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
+    @Query('jobPostingId', new ParseIntPipe({ optional: true })) jobPostingId?: number
   ) {
+    queryDto.page = page;
+    queryDto.limit = limit;
+    queryDto.jobPostingId = jobPostingId; // Gán lại jobPostingId đã được parse
     return this.careersService.findAllApplicationsForAdmin(queryDto);
   }
 
