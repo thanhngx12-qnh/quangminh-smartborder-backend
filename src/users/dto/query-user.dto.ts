@@ -7,7 +7,7 @@ import { UserRole } from '../entities/user.entity';
 export class QueryUserDto extends PaginationQueryDto {
   @ApiPropertyOptional({
     description: 'Tìm kiếm theo email hoặc họ tên',
-    example: 'admin@quangminh.vn',
+    example: 'admin@talunglogistics.com',
   })
   @IsOptional()
   @IsString()

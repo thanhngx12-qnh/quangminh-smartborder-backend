@@ -3,7 +3,7 @@ import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger'; // <-- Import
 
 export class LoginDto {
-  @ApiProperty({ example: 'admin@quangminh.vn', description: 'The email address of the user' }) // <-- Thêm mô tả và ví dụ
+  @ApiProperty({ example: 'admin@talunglogistics.com', description: 'The email address of the user' }) // <-- Thêm mô tả và ví dụ
   @IsEmail()
   @IsNotEmpty()
   email: string;
