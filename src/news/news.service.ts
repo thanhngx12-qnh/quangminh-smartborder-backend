@@ -119,23 +119,31 @@ export class NewsService {
    */
   async findAll(
     page: number = 1,
-    limit: number = 9, // Mặc định 9 bài viết mỗi trang
+    limit: number = 9,
     locale?: string,
     status?: NewsStatus,
     featured?: boolean
   ): Promise<PaginatedNewsResult> {
     const skip = (page - 1) * limit;
 
-    const queryBuilder = this.newsRepository
-      .createQueryBuilder('news')
-      .leftJoinAndSelect('news.translations', 'translation')
+    const queryBuilder = this.newsRepository.createQueryBuilder('news');
+
+    // --- SỬA Ở ĐÂY ---
+    // Di chuyển điều kiện locale vào trong câu lệnh Join
+    queryBuilder.leftJoinAndSelect(
+      'news.translations',
+      'translation',
+      locale ? 'translation.locale = :locale' : undefined, 
+      { locale }
+    );
+
+    queryBuilder
       .orderBy('news.publishedAt', 'DESC')
       .skip(skip)
       .take(limit);
 
-    if (locale) {
-      queryBuilder.andWhere('translation.locale = :locale', { locale });
-    }
+    // Bỏ đoạn if (locale) cũ ở dưới đi vì đã xử lý trong Join rồi
+    
     if (status) {
       queryBuilder.andWhere('news.status = :status', { status });
     }
