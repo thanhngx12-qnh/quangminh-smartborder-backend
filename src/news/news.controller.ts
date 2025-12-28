@@ -59,14 +59,23 @@ export class NewsController {
    * @route GET /news (CÔNG KHAI)
    * @description Lấy danh sách bài viết đã PUBLISHED cho trang công khai.
    */
-  @Get()
+ @Get()
   findAllPublished(
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('limit', new DefaultValuePipe(9), ParseIntPipe) limit: number,
     @Query('locale') locale?: string,
-    @Query('featured') featured?: string
+    @Query('featured') featured?: string // Nhận vào là string
   ) {
-    return this.newsService.findAll(page, limit, locale, NewsStatus.PUBLISHED, featured === 'true');
+    // Logic chuyển đổi đúng:
+    // 1. Nếu featured = 'true' -> true
+    // 2. Nếu featured = 'false' -> false
+    // 3. Nếu không truyền -> undefined (để Service lấy tất cả)
+    
+    let isFeatured: boolean | undefined;
+    if (featured === 'true') isFeatured = true;
+    else if (featured === 'false') isFeatured = false;
+
+    return this.newsService.findAll(page, limit, locale, NewsStatus.PUBLISHED, isFeatured);
   }
 
 
