@@ -1,3 +1,4 @@
+// dir: ~/quangminh-smart-border/backend/src/services/services.service.spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
 import { ServicesService } from './services.service';
 

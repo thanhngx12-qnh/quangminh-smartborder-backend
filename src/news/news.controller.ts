@@ -27,10 +27,6 @@ import { NewsStatus } from './entities/news.entity';
 export class NewsController {
   constructor(private readonly newsService: NewsService) {}
 
-  /**
-   * @route POST /news (ADMIN, CONTENT_MANAGER)
-   * @description Tạo một bài viết mới.
-   */
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.CONTENT_MANAGER)
@@ -39,60 +35,37 @@ export class NewsController {
     return this.newsService.create(createNewsDto);
   }
 
-  /**
-   * @route GET /news/all (ADMIN, CONTENT_MANAGER)
-   * @description Lấy tất cả bài viết, bao gồm cả bản nháp, cho trang quản trị.
-   */
   @Get('all')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.CONTENT_MANAGER)
-  findAllForAdmin(
-    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
-    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
-    @Query('locale') locale?: string,
-    @Query('status') status?: NewsStatus
-  ) {
-    return this.newsService.findAll(page, limit, locale, status);
+  findAllForAdmin(@Query() queryDto: any) { 
+    // Thay vì truyền 9 tham số, ta truyền nguyên object queryDto để khớp với Service
+    return this.newsService.findAllForAdmin(queryDto);
   }
 
-  /**
-   * @route GET /news (CÔNG KHAI)
-   * @description Lấy danh sách bài viết đã PUBLISHED cho trang công khai.
-   */
- @Get()
+  @Get()
   findAllPublished(
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('limit', new DefaultValuePipe(9), ParseIntPipe) limit: number,
     @Query('locale') locale?: string,
-    @Query('featured') featured?: string // Nhận vào là string
+    @Query('featured') featured?: string,
+    @Query('categoryId') categoryId?: string,
   ) {
-    // Logic chuyển đổi đúng:
-    // 1. Nếu featured = 'true' -> true
-    // 2. Nếu featured = 'false' -> false
-    // 3. Nếu không truyền -> undefined (để Service lấy tất cả)
-    
     let isFeatured: boolean | undefined;
     if (featured === 'true') isFeatured = true;
     else if (featured === 'false') isFeatured = false;
 
-    return this.newsService.findAll(page, limit, locale, NewsStatus.PUBLISHED, isFeatured);
+    const catId = categoryId ? parseInt(categoryId, 10) : undefined;
+
+    return this.newsService.findAll(page, limit, locale, NewsStatus.PUBLISHED, isFeatured, catId);
   }
 
-
-  /**
-   * @route GET /news/slug/:locale/:slug (CÔNG KHAI)
-   * @description Lấy chi tiết một bài viết đã PUBLISHED theo slug.
-   */
   @Get('slug/:locale/:slug')
   @HttpCode(HttpStatus.OK)
   findOneBySlug(@Param('locale') locale: string, @Param('slug') slug: string) {
     return this.newsService.findOneBySlug(locale, slug);
   }
   
-  /**
-   * @route GET /news/:id (ADMIN, CONTENT_MANAGER)
-   * @description Lấy chi tiết một bài viết theo ID (dùng trong trang quản trị).
-   */
   @Get(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.CONTENT_MANAGER)
@@ -101,10 +74,6 @@ export class NewsController {
     return this.newsService.findOne(id);
   }
   
-  /**
-   * @route PATCH /news/:id (ADMIN, CONTENT_MANAGER)
-   * @description Cập nhật một bài viết.
-   */
   @Patch(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.CONTENT_MANAGER)
@@ -113,10 +82,6 @@ export class NewsController {
     return this.newsService.update(id, updateNewsDto);
   }
   
-  /**
-   * @route DELETE /news/:id (ADMIN, CONTENT_MANAGER)
-   * @description Xóa một bài viết.
-   */
   @Delete(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.CONTENT_MANAGER)

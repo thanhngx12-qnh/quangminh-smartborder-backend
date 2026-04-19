@@ -1,3 +1,4 @@
+// dir: ~/quangminh-smart-border/backend/src/news/news.service.spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
 import { NewsService } from './news.service';
 

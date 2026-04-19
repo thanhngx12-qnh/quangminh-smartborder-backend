@@ -9,28 +9,42 @@ import {
 import { News } from './news.entity';
 
 @Entity('news_translations')
-@Index(['news', 'locale'], { unique: true }) // Mỗi bài viết chỉ có một bản dịch cho mỗi ngôn ngữ
+@Index(['news', 'locale'], { unique: true })
 export class NewsTranslation {
   @PrimaryGeneratedColumn()
   id: number;
 
   @Column({ length: 10 })
-  locale: string; // 'vi', 'en', 'zh-CN'
+  locale: string;
 
   @Column()
-  title: string; // Tiêu đề bài viết
+  title: string;
 
   @Column({ unique: true })
-  slug: string; // Slug cho URL, ví dụ: 'chinh-sach-moi-tai-cua-khau-ta-lung'
+  slug: string;
 
   @Column({ type: 'text' })
-  excerpt: string; // Đoạn tóm tắt/mô tả ngắn của bài viết
+  excerpt: string;
 
   @Column({ type: 'text' })
-  content: string; // Nội dung chi tiết của bài viết
+  content: string;
+
+  // --- Thêm các trường SEO ---
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  metaTitle: string;
+
+  @Column({ type: 'text', nullable: true })
+  metaDescription: string;
+
+  @Column({ type: 'text', nullable: true })
+  metaKeywords: string;
+
+  @Column({ type: 'varchar', length: 500, nullable: true })
+  ogImage: string;
+  // --------------------------
 
   @ManyToOne(() => News, (news) => news.translations, {
-    onDelete: 'CASCADE', // Xóa bản dịch khi bài viết bị xóa
+    onDelete: 'CASCADE',
   })
   news: News;
 }

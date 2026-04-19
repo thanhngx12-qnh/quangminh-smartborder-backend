@@ -26,7 +26,7 @@ import { UpdateServiceDto } from './dto/update-service.dto';
 
 @ApiTags('Admin - Services')
 @Controller('admin/services')
-@UseGuards(JwtAuthGuard, RolesGuard) // Bảo vệ tất cả các route trong controller này
+@UseGuards(JwtAuthGuard, RolesGuard)
 @ApiBearerAuth()
 export class ServicesAdminController {
   constructor(private readonly servicesService: ServicesService) {}
@@ -34,10 +34,8 @@ export class ServicesAdminController {
   @Get()
   @Roles(UserRole.ADMIN, UserRole.CONTENT_MANAGER)
   @ApiOperation({ summary: 'Lấy danh sách dịch vụ cho Admin (hỗ trợ phân trang, lọc, tìm kiếm)' })
-  findAllForAdmin(
-    @Query(new ValidationPipe({ transform: true, whitelist: true })) 
-    queryDto: QueryServiceDto
-  ) {
+  findAllForAdmin(@Query(new ValidationPipe({ transform: true, whitelist: true })) queryDto: QueryServiceDto) {
+    // queryDto đã chứa categoryId nhờ việc ta đã update QueryServiceDto
     return this.servicesService.findAllForAdmin(queryDto);
   }
 
@@ -46,35 +44,29 @@ export class ServicesAdminController {
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Tạo một dịch vụ mới' })
   create(@Body() createServiceDto: CreateServiceDto) {
-    // Tái sử dụng hàm `create` hiện có
     return this.servicesService.create(createServiceDto);
+    // Lưu ý: createServiceDto bây giờ chứa categoryId thay vì category string
   }
 
   @Get(':id')
   @Roles(UserRole.ADMIN, UserRole.CONTENT_MANAGER)
   @ApiOperation({ summary: 'Lấy chi tiết một dịch vụ bằng ID (bao gồm tất cả bản dịch)' })
-  findOneForAdmin(@Param('id', ParseIntPipe) id: number) {
-    // Tái sử dụng hàm `findOne` đã được cập nhật
-    return this.servicesService.findOne(id);
+  findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.servicesService.findOneForAdmin(id);
   }
 
   @Patch(':id')
   @Roles(UserRole.ADMIN, UserRole.CONTENT_MANAGER)
   @ApiOperation({ summary: 'Cập nhật một dịch vụ' })
-  update(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() updateServiceDto: UpdateServiceDto,
-  ) {
-    // Tái sử dụng hàm `update` hiện có
+  update(@Param('id', ParseIntPipe) id: number, @Body() updateServiceDto: UpdateServiceDto) {
     return this.servicesService.update(id, updateServiceDto);
   }
 
   @Delete(':id')
-  @Roles(UserRole.ADMIN) // Chỉ Admin mới có quyền xóa dịch vụ
+  @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Xóa một dịch vụ (chỉ Admin)' })
   remove(@Param('id', ParseIntPipe) id: number) {
-    // Tái sử dụng hàm `remove` hiện có
     return this.servicesService.remove(id);
   }
 }

@@ -47,7 +47,7 @@ export class NewsService {
     await this.newsRepository.save(news);
 
     // Lưu các bản dịch
-    const savedTranslations: NewsTranslation[] = [];
+    const savedTranslations: NewsTranslation[] =[];
     for (const translationDto of translations) {
       const translation = this.translationsRepository.create({
         ...translationDto,
@@ -60,11 +60,13 @@ export class NewsService {
     return news;
   }
 
-  // HÀM MỚI CHO ADMIN PANEL
+  /**
+   * Lấy danh sách cho Admin (Sử dụng QueryNewsDto để lọc theo categoryId)
+   */
   async findAllForAdmin(queryDto: QueryNewsDto): Promise<PaginatedNewsResult_> {
-    const { page, limit, q, sortBy, sortOrder, status, featured } = queryDto;
+    const { page, limit, q, sortBy, sortOrder, status, featured, categoryId } = queryDto;
 
-    const allowedSortBy = ['id', 'status', 'featured', 'publishedAt', 'createdAt'];
+    const allowedSortBy =['id', 'status', 'featured', 'publishedAt', 'createdAt'];
     if (sortBy && !allowedSortBy.includes(sortBy)) {
       throw new BadRequestException(`Cột sắp xếp không hợp lệ: ${sortBy}`);
     }
@@ -72,12 +74,14 @@ export class NewsService {
     const skip = (page - 1) * limit;
 
     const queryBuilder = this.newsRepository.createQueryBuilder('news');
+    
+    // Join category để hiển thị thông tin danh mục trong danh sách Admin
+    queryBuilder.leftJoinAndSelect('news.category', 'category');
 
     if (q) {
-      // Join và tìm kiếm trong title của bản dịch
       queryBuilder
         .innerJoin('news.translations', 'translation')
-        .where('translation.title ILIKE :q', { q: `%${q}%` });
+        .andWhere('translation.title ILIKE :q', { q: `%${q}%` });
     }
 
     if (status) {
@@ -88,11 +92,16 @@ export class NewsService {
       queryBuilder.andWhere('news.featured = :featured', { featured });
     }
 
+    // --- BỔ SUNG: Lọc theo categoryId ---
+    if (categoryId) {
+      queryBuilder.andWhere('news.categoryId = :categoryId', { categoryId });
+    }
+
     const total = await queryBuilder.getCount();
     
     queryBuilder
       .orderBy(`news.${sortBy || 'createdAt'}`, sortOrder)
-      .leftJoinAndSelect('news.translations', 'translations') // Luôn lấy tất cả bản dịch
+      .leftJoinAndSelect('news.translations', 'translations') 
       .skip(skip)
       .take(limit);
 
@@ -102,11 +111,10 @@ export class NewsService {
     return { data, total, page, limit, lastPage };
   }
 
-  // HÀM MỚI CHO ADMIN: Tìm theo ID, không quan tâm status
   async findOneForAdmin(id: number): Promise<News> {
     const news = await this.newsRepository.findOne({
         where: { id },
-        relations: ['translations'],
+        relations: ['translations', 'category'], // Load thêm category
     });
     if (!news) {
         throw new NotFoundException(`Không tìm thấy bài viết với ID ${id}`);
@@ -115,21 +123,20 @@ export class NewsService {
   }
 
   /**
-   * Lấy danh sách tất cả bài viết, có thể lọc.
+   * Lấy danh sách cho Public (Công khai)
    */
   async findAll(
     page: number = 1,
     limit: number = 9,
     locale?: string,
     status?: NewsStatus,
-    featured?: boolean
+    featured?: boolean,
+    categoryId?: number // --- BỔ SUNG ---
   ): Promise<PaginatedNewsResult> {
     const skip = (page - 1) * limit;
 
     const queryBuilder = this.newsRepository.createQueryBuilder('news');
 
-    // --- SỬA Ở ĐÂY ---
-    // Di chuyển điều kiện locale vào trong câu lệnh Join
     queryBuilder.leftJoinAndSelect(
       'news.translations',
       'translation',
@@ -137,18 +144,23 @@ export class NewsService {
       { locale }
     );
 
+    // Join category cho public
+    queryBuilder.leftJoinAndSelect('news.category', 'category');
+
     queryBuilder
       .orderBy('news.publishedAt', 'DESC')
       .skip(skip)
       .take(limit);
-
-    // Bỏ đoạn if (locale) cũ ở dưới đi vì đã xử lý trong Join rồi
     
     if (status) {
       queryBuilder.andWhere('news.status = :status', { status });
     }
     if (featured !== undefined) {
       queryBuilder.andWhere('news.featured = :featured', { featured });
+    }
+    // --- BỔ SUNG: Lọc theo categoryId ---
+    if (categoryId) {
+      queryBuilder.andWhere('news.categoryId = :categoryId', { categoryId });
     }
 
     const [data, total] = await queryBuilder.getManyAndCount();
@@ -163,26 +175,24 @@ export class NewsService {
     };
   }
 
-  /**
-   * Lấy chi tiết một bài viết theo ID.
-   */
   async findOne(id: number): Promise<News> {
-    const news = await this.newsRepository.findOne({ where: { id } });
+    const news = await this.newsRepository.findOne({ 
+      where: { id },
+      relations: ['translations', 'category'] // Load thêm category
+    });
     if (!news) {
       throw new NotFoundException(`News article with ID ${id} not found.`);
     }
     return news;
   }
   
-  /**
-   * Lấy chi tiết một bài viết đã PUBLISHED theo slug và ngôn ngữ.
-   */
   async findOneBySlug(locale: string, slug: string): Promise<News> {
     const queryBuilder = this.newsRepository.createQueryBuilder('news')
       .leftJoinAndSelect('news.translations', 'translation')
+      .leftJoinAndSelect('news.category', 'category') // Load thêm category
       .where('translation.locale = :locale', { locale })
       .andWhere('translation.slug = :slug', { slug })
-      .andWhere('news.status = :status', { status: NewsStatus.PUBLISHED }); // Đảm bảo chỉ lấy bài đã xuất bản
+      .andWhere('news.status = :status', { status: NewsStatus.PUBLISHED });
       
     const news = await queryBuilder.getOne();
 
@@ -190,44 +200,43 @@ export class NewsService {
       throw new NotFoundException(`News article with slug '${slug}' in locale '${locale}' not found.`);
     }
 
-    // Lọc lại để chỉ trả về đúng bản dịch được yêu cầu
     news.translations = news.translations.filter(t => t.locale === locale);
 
     return news;
   }
 
-  /**
-   * Cập nhật một bài viết.
-   */
   async update(id: number, updateNewsDto: UpdateNewsDto): Promise<News> {
-    // --- SỬA LẠI LOGIC Ở ĐÂY ---
-    
-    // 1. Tìm bài viết cần cập nhật
     const newsToUpdate = await this.newsRepository.findOne({
       where: { id },
-      relations: ['translations'],
+      relations: ['translations', 'category'],
     });
     
     if (!newsToUpdate) {
       throw new NotFoundException(`Không tìm thấy bài viết với ID ${id}.`);
     }
 
-    // 2. Tách riêng các phần của DTO
-    const { translations, ...newsDataToUpdate } = updateNewsDto;
+    // TÁCH categoryId ra khỏi các trường merge tự động
+    const { translations, categoryId, ...newsDataToUpdate } = updateNewsDto;
 
-    // 3. Xử lý logic thời gian xuất bản (chỉ khi status được gửi lên)
+    // 1. Xử lý logic thời gian xuất bản
     if (newsDataToUpdate.status === NewsStatus.PUBLISHED && !newsToUpdate.publishedAt) {
       newsDataToUpdate.publishedAt = new Date().toISOString();
     }
     
-    // 4. Merge các thay đổi từ DTO vào đối tượng đã có
-    // TypeORM's merge rất thông minh, nó sẽ bỏ qua các trường `undefined` trong DTO
+    // 2. Merge các trường còn lại (coverImage, featured, status, v.v.)
     this.newsRepository.merge(newsToUpdate, newsDataToUpdate);
 
-    // 5. Lưu lại đối tượng đã được merge
+    // 3. ÉP BUỘC cập nhật categoryId (Xử lý triệt để lỗi TypeORM relation)
+    if (categoryId !== undefined) {
+      newsToUpdate.categoryId = categoryId;
+      // Dòng này rất quan trọng: Ép TypeORM bỏ qua object cũ để nhận giá trị categoryId mới
+      newsToUpdate.category = null as any; 
+    }
+
+    // 4. Lưu lại vào database
     await this.newsRepository.save(newsToUpdate);
     
-    // 6. Cập nhật các bản dịch (nếu có)
+    // 5. Cập nhật các bản dịch (giữ nguyên logic cũ)
     if (translations) {
       for (const translationDto of translations) {
         let existingTranslation = newsToUpdate.translations.find(t => t.locale === translationDto.locale);
@@ -241,14 +250,10 @@ export class NewsService {
       }
     }
 
-    // 7. Trả về bài viết đã được cập nhật hoàn chỉnh
-    // Gọi findOneForAdmin để đảm bảo tất cả relations đều được load lại
+    // Trả về dữ liệu mới nhất (sẽ tự động join lấy thông tin category mới)
     return this.findOneForAdmin(id);
   }
 
-  /**
-   * Xóa một bài viết theo ID.
-   */
   async remove(id: number): Promise<void> {
     const result = await this.newsRepository.delete(id);
     if (result.affected === 0) {

@@ -12,46 +12,43 @@ import {
   HttpStatus,
   ParseIntPipe,
   UseGuards,
-  DefaultValuePipe, // <-- Thêm import UseGuards
+  DefaultValuePipe,
 } from '@nestjs/common';
 import { ServicesService } from './services.service';
 import { ApiTags, ApiQuery } from '@nestjs/swagger'; 
 import { CreateServiceDto } from './dto/create-service.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
 import { Service } from './entities/service.entity';
-import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';     // <-- Import JwtAuthGuard
-// import { RolesGuard } from 'src/auth/guards/roles.guard';         // <-- Import RolesGuard
-// import { Roles } from 'src/auth/decorators/roles.decorator';      // <-- Import Roles decorator
-// import { UserRole } from 'src/users/entities/user.entity';        // <-- Import UserRole enum
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
+import { Roles } from 'src/auth/decorators/roles.decorator';
+import { UserRole } from 'src/users/entities/user.entity';
 
+@ApiTags('Services')
 @Controller('services')
 export class ServicesController {
   constructor(private readonly servicesService: ServicesService) {}
 
   @Get()
-  // THÊM CÁC DECORATOR Ở ĐÂY
-  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Số trang' })
-  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Số lượng trên mỗi trang' })
-  @ApiQuery({ name: 'locale', required: false, type: String, description: 'Ngôn ngữ (vi, en, zh)' })
-  @ApiQuery({ name: 'featured', required: false, type: Boolean, description: 'Lọc dịch vụ nổi bật' })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiQuery({ name: 'locale', required: false, type: String })
+  @ApiQuery({ name: 'featured', required: false, type: Boolean })
+  @ApiQuery({ name: 'categoryId', required: false, type: Number }) // Thêm query param
   @HttpCode(HttpStatus.OK)
   async findAll(
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
     @Query('locale') locale?: string,
     @Query('featured') featured?: string,
+    @Query('categoryId') categoryId?: string, // Nhận vào là string từ query
   ) {
     const featuredBoolean = featured === 'true' ? true : featured === 'false' ? false : undefined;
-    return this.servicesService.findAll(page, limit, locale, featuredBoolean);
+    const catId = categoryId ? parseInt(categoryId, 10) : undefined;
+
+    return this.servicesService.findAll(page, limit, locale, featuredBoolean, catId);
   }
 
-  /**
-   * @route GET /services/:id (Công khai)
-   * @description Lấy chi tiết một dịch vụ theo ID.
-   * @param id ID của dịch vụ.
-   * @param locale (Query parameter, tùy chọn) Lọc bản dịch theo ngôn ngữ.
-   * @returns Dịch vụ tìm thấy.
-   */
   @Get(':id')
   @HttpCode(HttpStatus.OK)
   async findOne(
@@ -61,13 +58,6 @@ export class ServicesController {
     return this.servicesService.findOne(id, locale);
   }
 
-  /**
-   * @route GET /services/slug/:locale/:slug (Công khai)
-   * @description Lấy chi tiết một dịch vụ theo slug và ngôn ngữ.
-   * @param locale Ngôn ngữ của bản dịch.
-   * @param slug Slug của dịch vụ.
-   * @returns Dịch vụ tìm thấy.
-   */
   @Get('slug/:locale/:slug')
   @HttpCode(HttpStatus.OK)
   async findOneBySlug(
@@ -76,5 +66,4 @@ export class ServicesController {
   ): Promise<Service> {
     return this.servicesService.findOneBySlug(locale, slug);
   }
-
 }

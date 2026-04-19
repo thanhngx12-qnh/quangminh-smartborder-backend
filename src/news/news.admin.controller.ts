@@ -21,6 +21,7 @@ export class NewsAdminController {
   @Roles(UserRole.ADMIN, UserRole.CONTENT_MANAGER)
   @ApiOperation({ summary: 'Lấy danh sách tin tức (phân trang, lọc, tìm kiếm)' })
   findAllForAdmin(@Query(new ValidationPipe({ transform: true, whitelist: true })) queryDto: QueryNewsDto) {
+    // queryDto đã bao gồm categoryId nhờ việc ta đã update QueryNewsDto ở bước trước
     return this.newsService.findAllForAdmin(queryDto);
   }
 

@@ -1,27 +1,33 @@
 // dir: ~/quangminh-smart-border/backend/src/services/dto/create-service.dto.ts
-import { IsString, IsNotEmpty, IsBoolean, IsOptional, ValidateNested, IsArray } from 'class-validator';
+import { IsString, IsNotEmpty, IsBoolean, IsOptional, ValidateNested, IsArray, IsNumber } from 'class-validator';
 import { Type } from 'class-transformer';
-import { ServiceTranslationDto } from './service-translation.dto'; // Import DTO bản dịch
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ServiceTranslationDto } from './service-translation.dto';
 
 export class CreateServiceDto {
+  @ApiProperty()
   @IsString()
   @IsNotEmpty()
-  code: string; // Ví dụ: 'transport'
+  code: string;
 
-  @IsString()
-  @IsNotEmpty()
-  category: string; // Ví dụ: 'Vận Tải'
+  @ApiPropertyOptional({ description: 'ID của danh mục' })
+  @IsNumber()
+  @IsOptional()
+  categoryId?: number; // Đã đổi từ category: string thành categoryId: number
 
+  @ApiPropertyOptional()
   @IsString()
   @IsOptional()
-  coverImage?: string; // URL ảnh bìa
+  coverImage?: string;
 
+  @ApiPropertyOptional()
   @IsBoolean()
   @IsOptional()
-  featured?: boolean = false; // Mặc định là false
+  featured?: boolean = false;
 
+  @ApiProperty({ type: [ServiceTranslationDto] })
   @IsArray()
-  @ValidateNested({ each: true }) // Validate từng phần tử trong mảng
-  @Type(() => ServiceTranslationDto) // Chuyển đổi thành ServiceTranslationDto
-  translations: ServiceTranslationDto[]; // Các bản dịch của dịch vụ
+  @ValidateNested({ each: true })
+  @Type(() => ServiceTranslationDto)
+  translations: ServiceTranslationDto[];
 }

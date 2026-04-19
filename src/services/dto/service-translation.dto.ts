@@ -1,11 +1,12 @@
 // dir: ~/quangminh-smart-border/backend/src/services/dto/service-translation.dto.ts
 import { IsString, IsNotEmpty, IsOptional, Length } from 'class-validator';
+import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class ServiceTranslationDto {
   @IsString()
   @IsNotEmpty()
   @Length(2, 10)
-  locale: string; // 'vi', 'en', 'zh-CN'
+  locale: string;
 
   @IsString()
   @IsNotEmpty()
@@ -13,13 +14,35 @@ export class ServiceTranslationDto {
 
   @IsString()
   @IsNotEmpty()
-  slug: string; // Ví dụ: 'van-tai-bien-gioi'
+  slug: string;
 
   @IsString()
-  @IsOptional() // Có thể không có short description
+  @IsOptional()
   shortDesc?: string;
 
   @IsString()
-  @IsOptional() // Có thể không có content
+  @IsOptional()
   content?: string;
+
+  // --- BỔ SUNG CÁC TRƯỜNG SEO ---
+  @ApiPropertyOptional({ description: 'SEO Title' })
+  @IsString()
+  @IsOptional()
+  metaTitle?: string;
+
+  @ApiPropertyOptional({ description: 'SEO Description' })
+  @IsString()
+  @IsOptional()
+  metaDescription?: string;
+
+  @ApiPropertyOptional({ description: 'SEO Keywords' })
+  @IsString()
+  @IsOptional()
+  metaKeywords?: string;
+
+  @ApiPropertyOptional({ description: 'OG Image URL' })
+  @IsString()
+  @IsOptional()
+  ogImage?: string;
+  // ------------------------------
 }

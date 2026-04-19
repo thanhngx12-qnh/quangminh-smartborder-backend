@@ -1,11 +1,10 @@
 // dir: ~/quangminh-smart-border/backend/src/news/dto/update-news.dto.ts
-import { IsString, IsBoolean, IsOptional, IsEnum, IsArray, ValidateNested } from 'class-validator';
+import { IsString, IsBoolean, IsOptional, IsEnum, IsArray, ValidateNested, IsNumber } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { NewsTranslationDto } from './news-translation.dto';
 import { NewsStatus } from '../entities/news.entity';
 
-// DTO này không có bất kỳ giá trị mặc định nào
 export class UpdateNewsDto {
   @ApiPropertyOptional()
   @IsString()
@@ -17,7 +16,6 @@ export class UpdateNewsDto {
   @IsOptional()
   featured?: boolean;
 
-  // Thuộc tính `status` giờ đây không có giá trị mặc định
   @ApiPropertyOptional({ enum: NewsStatus })
   @IsEnum(NewsStatus)
   @IsOptional()
@@ -27,6 +25,13 @@ export class UpdateNewsDto {
   @IsString()
   @IsOptional()
   publishedAt?: string;
+
+  // --- Thêm Category ID ---
+  @ApiPropertyOptional({ description: 'ID của danh mục' })
+  @IsNumber()
+  @IsOptional()
+  categoryId?: number;
+  // ------------------------
 
   @ApiPropertyOptional({ type: [NewsTranslationDto] })
   @IsArray()

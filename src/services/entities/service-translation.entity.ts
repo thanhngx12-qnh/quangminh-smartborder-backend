@@ -8,29 +8,43 @@ import {
 } from 'typeorm';
 import { Service } from './service.entity';
 
-@Entity('service_translations') // Đặt tên bảng là 'service_translations'
-@Index(['service', 'locale'], { unique: true }) // Đảm bảo mỗi dịch vụ chỉ có một bản dịch cho mỗi ngôn ngữ
+@Entity('service_translations')
+@Index(['service', 'locale'], { unique: true })
 export class ServiceTranslation {
   @PrimaryGeneratedColumn()
   id: number;
 
   @Column({ length: 10 })
-  locale: string; // Ví dụ: 'vi', 'en', 'zh-CN'
+  locale: string;
 
   @Column()
   title: string;
 
   @Column({ unique: true })
-  slug: string; // Slug cho URL, ví dụ: 'van-tai-bien-gioi'
+  slug: string;
 
   @Column({ type: 'text', nullable: true })
   shortDesc: string;
 
   @Column({ type: 'text', nullable: true })
-  content: string; // Nội dung chi tiết của dịch vụ (có thể là Markdown)
+  content: string;
+
+  // --- Thêm các trường SEO ---
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  metaTitle: string;
+
+  @Column({ type: 'text', nullable: true })
+  metaDescription: string;
+
+  @Column({ type: 'text', nullable: true })
+  metaKeywords: string;
+
+  @Column({ type: 'varchar', length: 500, nullable: true })
+  ogImage: string;
+  // --------------------------
 
   @ManyToOne(() => Service, (service) => service.translations, {
-    onDelete: 'CASCADE', // Xóa bản dịch khi dịch vụ bị xóa
+    onDelete: 'CASCADE',
   })
-  service: Service; // Mối quan hệ nhiều-một với Service
+  service: Service;
 }

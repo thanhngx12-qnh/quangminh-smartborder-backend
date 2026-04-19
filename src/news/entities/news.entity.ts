@@ -4,26 +4,29 @@ import {
   PrimaryGeneratedColumn,
   Column,
   OneToMany,
+  ManyToOne,
   CreateDateColumn,
   UpdateDateColumn,
+  JoinColumn,
 } from 'typeorm';
-import { NewsTranslation } from './news-translation.entity'; // Sẽ tạo sau
+import { NewsTranslation } from './news-translation.entity';
+import { Category } from '../../categories/entities/category.entity';
 
 export enum NewsStatus {
-  DRAFT = 'DRAFT', // Bản nháp
-  PUBLISHED = 'PUBLISHED', // Đã xuất bản
+  DRAFT = 'DRAFT',
+  PUBLISHED = 'PUBLISHED',
 }
 
-@Entity('news') // Đặt tên bảng là 'news'
+@Entity('news')
 export class News {
   @PrimaryGeneratedColumn()
   id: number;
 
   @Column({ nullable: true })
-  coverImage: string; // URL ảnh bìa của bài viết
+  coverImage: string;
 
   @Column({ default: false })
-  featured: boolean; // Bài viết nổi bật (để hiển thị trên trang chủ)
+  featured: boolean;
 
   @Column({
     type: 'enum',
@@ -33,7 +36,18 @@ export class News {
   status: NewsStatus;
 
   @Column({ type: 'timestamp', nullable: true })
-  publishedAt?: Date; // Thời điểm xuất bản, có thể lên lịch
+  publishedAt?: Date;
+
+  // --- Thêm Category Relation ---
+  @Column({ nullable: true })
+  categoryId: number;
+
+  @ManyToOne(() => Category, (category) => category.news, {
+    onDelete: 'SET NULL',
+  })
+  @JoinColumn({ name: 'categoryId' })
+  category: Category;
+  // ------------------------------
 
   @CreateDateColumn()
   createdAt: Date;
@@ -42,8 +56,8 @@ export class News {
   updatedAt: Date;
 
   @OneToMany(() => NewsTranslation, (translation) => translation.news, {
-    cascade: true, // Tự động lưu/xóa bản dịch khi bài viết được lưu/xóa
-    eager: true, // Tự động load các bản dịch khi truy vấn News
+    cascade: true,
+    eager: true,
   })
   translations: NewsTranslation[];
 }

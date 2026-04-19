@@ -5,31 +5,45 @@ import {
   Column,
   OneToMany,
   CreateDateColumn,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
-import { ServiceTranslation } from './service-translation.entity'; // Sẽ tạo sau
+import { ServiceTranslation } from './service-translation.entity';
+import { Category } from '../../categories/entities/category.entity';
 
-@Entity('services') // Đặt tên bảng là 'services'
+@Entity('services')
 export class Service {
   @PrimaryGeneratedColumn()
   id: number;
 
   @Column({ unique: true, length: 50 })
-  code: string; // Ví dụ: 'transport', 'warehouse', 'ecommerce'
+  code: string;
 
-  @Column({ length: 50 })
-  category: string; // Ví dụ: 'Vận Tải', 'Kho Bãi', 'TMĐT'
+  // @Column({ length: 50 }) // Cột cũ sẽ được thay thế bằng category_id trong migration
+  // category: string; 
 
   @Column({ nullable: true })
-  coverImage: string; // URL ảnh bìa
+  coverImage: string;
 
   @Column({ default: false })
-  featured: boolean; // Dịch vụ nổi bật
+  featured: boolean;
+
+  // --- Thêm Category Relation ---
+  @Column({ nullable: true })
+  categoryId: number;
+
+  @ManyToOne(() => Category, (category) => category.services, {
+    onDelete: 'SET NULL',
+  })
+  @JoinColumn({ name: 'categoryId' })
+  category: Category;
+  // ------------------------------
 
   @CreateDateColumn()
   createdAt: Date;
 
   @OneToMany(() => ServiceTranslation, (translation) => translation.service, {
-    cascade: true, // Tự động lưu/xóa bản dịch khi dịch vụ được lưu/xóa
+    cascade: true,
   })
-  translations: ServiceTranslation[]; // Mối quan hệ một-nhiều với bản dịch
+  translations: ServiceTranslation[];
 }

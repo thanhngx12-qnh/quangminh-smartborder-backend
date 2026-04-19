@@ -1,6 +1,6 @@
 // dir: ~/quangminh-smart-border/backend/src/news/dto/query-news.dto.ts
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsEnum, IsBoolean } from 'class-validator';
+import { IsOptional, IsEnum, IsBoolean, IsNumber } from 'class-validator';
 import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 import { NewsStatus } from '../entities/news.entity';
 import { Transform } from 'class-transformer';
@@ -19,9 +19,14 @@ export class QueryNewsDto extends PaginationQueryDto {
     type: Boolean,
   })
   @IsOptional()
-  @Transform(({ value }) => value === 'true' || value === true) // Chuyển đổi 'true'/'false' từ query string thành boolean
+  @Transform(({ value }) => value === 'true' || value === true)
   @IsBoolean()
   featured?: boolean;
 
-  // `q` trong PaginationQueryDto sẽ được dùng để tìm kiếm theo `title`
+  // --- Thêm lọc theo Category ---
+  @ApiPropertyOptional({ description: 'Lọc theo danh mục' })
+  @IsNumber()
+  @IsOptional()
+  categoryId?: number;
+  // ------------------------------
 }
