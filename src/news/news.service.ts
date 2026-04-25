@@ -128,24 +128,33 @@ export class NewsService {
   async findAll(
     page: number = 1,
     limit: number = 9,
-    locale?: string,
+    locale: string = 'vi', // Đặt mặc định là vi nếu không truyền
     status?: NewsStatus,
     featured?: boolean,
-    categoryId?: number // --- BỔ SUNG ---
+    categoryId?: number
   ): Promise<PaginatedNewsResult> {
     const skip = (page - 1) * limit;
 
     const queryBuilder = this.newsRepository.createQueryBuilder('news');
 
-    queryBuilder.leftJoinAndSelect(
+    // 1. Sử dụng INNER JOIN: Chỉ lấy bài viết CÓ bản dịch cho ngôn ngữ này
+    // Điều này đảm bảo 'total' và 'limit' luôn chính xác
+    queryBuilder.innerJoinAndSelect(
       'news.translations',
       'translation',
-      locale ? 'translation.locale = :locale' : undefined, 
+      'translation.locale = :locale',
       { locale }
     );
 
-    // Join category cho public
-    queryBuilder.leftJoinAndSelect('news.category', 'category');
+    // 2. Join Category và bản dịch của Category tương ứng
+    queryBuilder
+      .leftJoinAndSelect('news.category', 'category')
+      .leftJoinAndSelect(
+        'category.translations',
+        'category_trans',
+        'category_trans.locale = :locale',
+        { locale }
+      );
 
     queryBuilder
       .orderBy('news.publishedAt', 'DESC')
@@ -155,14 +164,16 @@ export class NewsService {
     if (status) {
       queryBuilder.andWhere('news.status = :status', { status });
     }
+    
     if (featured !== undefined) {
       queryBuilder.andWhere('news.featured = :featured', { featured });
     }
-    // --- BỔ SUNG: Lọc theo categoryId ---
+
     if (categoryId) {
       queryBuilder.andWhere('news.categoryId = :categoryId', { categoryId });
     }
 
+    // getManyAndCount sẽ trả về con số 'total' chính xác dựa trên ngôn ngữ
     const [data, total] = await queryBuilder.getManyAndCount();
     const lastPage = Math.ceil(total / limit);
 
