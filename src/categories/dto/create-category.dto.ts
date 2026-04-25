@@ -1,8 +1,15 @@
-import { IsString, IsNotEmpty, IsOptional, IsEnum, IsInt } from 'class-validator';
+// dir: src/categories/dto/create-category.dto.ts
+import { IsString, IsNotEmpty, IsOptional, IsEnum, IsInt, IsArray, ValidateNested } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import { CategoryType } from '../entities/category.entity';
 
-export class CreateCategoryDto {
+export class CategoryTranslationDto {
+  @ApiProperty({ example: 'vi' })
+  @IsString()
+  @IsNotEmpty()
+  locale: string;
+
   @ApiProperty({ example: 'Tin tức' })
   @IsString()
   @IsNotEmpty()
@@ -13,17 +20,25 @@ export class CreateCategoryDto {
   @IsNotEmpty()
   slug: string;
 
-  @ApiProperty({ enum: CategoryType })
-  @IsEnum(CategoryType)
-  type: CategoryType;
-
   @ApiPropertyOptional({ example: 'Mô tả danh mục' })
   @IsString()
   @IsOptional()
   description?: string;
+}
+
+export class CreateCategoryDto {
+  @ApiProperty({ enum: CategoryType })
+  @IsEnum(CategoryType)
+  type: CategoryType;
 
   @ApiPropertyOptional({ example: 1 })
   @IsInt()
   @IsOptional()
   parentId?: number;
+
+  @ApiProperty({ type: [CategoryTranslationDto] })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CategoryTranslationDto)
+  translations: CategoryTranslationDto[];
 }

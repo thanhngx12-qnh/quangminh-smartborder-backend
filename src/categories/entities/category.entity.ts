@@ -10,6 +10,7 @@ import {
 } from 'typeorm';
 import { News } from '../../news/entities/news.entity';
 import { Service } from '../../services/entities/service.entity';
+import { CategoryTranslation } from './category-translation.entity';
 
 export enum CategoryType {
   NEWS = 'NEWS',
@@ -21,20 +22,13 @@ export class Category {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
-  name: string;
-
-  @Column({ unique: true })
-  slug: string;
+  // Name, Slug, Description đã được chuyển sang bảng Translation
 
   @Column({
     type: 'enum',
     enum: CategoryType,
   })
   type: CategoryType;
-
-  @Column({ type: 'text', nullable: true })
-  description: string;
 
   @Column({ nullable: true })
   parentId: number;
@@ -44,6 +38,12 @@ export class Category {
 
   @OneToMany(() => Category, (category) => category.parent)
   children: Category[];
+
+  @OneToMany(() => CategoryTranslation, (translation) => translation.category, {
+    cascade: true,
+    eager: true, // Tự động load bản dịch khi query Category
+  })
+  translations: CategoryTranslation[];
 
   @OneToMany(() => News, (news) => news.category)
   news: News[];
