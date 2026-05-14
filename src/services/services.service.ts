@@ -162,20 +162,32 @@ export class ServicesService {
     return service;
   }
 
+  // SỬA TẠI BACKEND (NestJS/TypeORM - Services Module)
   async findOneBySlug(locale: string, slug: string): Promise<Service> {
-    const service = await this.servicesRepository.createQueryBuilder('service')
-      .leftJoinAndSelect('service.translations', 'translation')
-      .leftJoinAndSelect('service.category', 'category')
-      .where('translation.locale = :locale', { locale })
-      .andWhere('translation.slug = :slug', { slug })
-      .getOne(); // Đã thêm AWAIT để trả về Service thay vì Builder
+      
+      // BƯỚC 1: Tìm ID của dịch vụ khớp với slug và locale
+      const matchedService = await this.servicesRepository.createQueryBuilder('service')
+        .innerJoin('service.translations', 'search_trans')
+        .where('search_trans.locale = :locale', { locale })
+        .andWhere('search_trans.slug = :slug', { slug })
+        .getOne();
 
-    if (!service) {
-      throw new NotFoundException(`Service with slug '${slug}' in locale '${locale}' not found.`);
-    }
+      if (!matchedService) {
+        throw new NotFoundException(`Service with slug '${slug}' in locale '${locale}' not found.`);
+      }
 
-    service.translations = service.translations.filter(t => t.locale === locale);
-    return service;
+      // BƯỚC 2: Lấy lại dịch vụ đó nhưng SELECT TOÀN BỘ Translations và Category
+      const fullService = await this.servicesRepository.createQueryBuilder('service')
+        .leftJoinAndSelect('service.translations', 'translation') // Lấy đủ các ngôn ngữ
+        .leftJoinAndSelect('service.category', 'category')
+        .leftJoinAndSelect('category.translations', 'category_trans') // Quan trọng: Lấy đa ngôn ngữ cho Category (V3.0)
+        .where('service.id = :id', { id: matchedService.id })
+        .getOne();
+
+      // TUYỆT ĐỐI KHÔNG SỬ DỤNG FILTER NỮA
+      // service.translations = service.translations.filter(t => t.locale === locale); <-- ĐÃ XÓA
+
+      return fullService;
   }
 
   async update(id: number, updateServiceDto: UpdateServiceDto): Promise<Service> {

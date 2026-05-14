@@ -197,23 +197,52 @@ export class NewsService {
     return news;
   }
   
-  async findOneBySlug(locale: string, slug: string): Promise<News> {
-    const queryBuilder = this.newsRepository.createQueryBuilder('news')
-      .leftJoinAndSelect('news.translations', 'translation')
-      .leftJoinAndSelect('news.category', 'category') // Load thêm category
-      .where('translation.locale = :locale', { locale })
-      .andWhere('translation.slug = :slug', { slug })
-      .andWhere('news.status = :status', { status: NewsStatus.PUBLISHED });
+  // async findOneBySlug(locale: string, slug: string): Promise<News> {
+  //   const queryBuilder = this.newsRepository.createQueryBuilder('news')
+  //     .leftJoinAndSelect('news.translations', 'translation')
+  //     .leftJoinAndSelect('news.category', 'category') // Load thêm category
+  //     .where('translation.locale = :locale', { locale })
+  //     .andWhere('translation.slug = :slug', { slug })
+  //     .andWhere('news.status = :status', { status: NewsStatus.PUBLISHED });
       
-    const news = await queryBuilder.getOne();
+  //   const news = await queryBuilder.getOne();
 
-    if (!news) {
-      throw new NotFoundException(`News article with slug '${slug}' in locale '${locale}' not found.`);
-    }
+  //   if (!news) {
+  //     throw new NotFoundException(`News article with slug '${slug}' in locale '${locale}' not found.`);
+  //   }
 
-    news.translations = news.translations.filter(t => t.locale === locale);
+  //   news.translations = news.translations.filter(t => t.locale === locale);
 
-    return news;
+  //   return news;
+  // }
+
+  // SỬA TẠI BACKEND (NestJS/TypeORM)
+  async findOneBySlug(locale: string, slug: string): Promise<News> {
+      
+      // BƯỚC 1: Tìm ID của bài viết khớp với slug và locale
+      const article = await this.newsRepository.createQueryBuilder('news')
+        .innerJoin('news.translations', 'search_trans')
+        .where('search_trans.locale = :locale', { locale })
+        .andWhere('search_trans.slug = :slug', { slug })
+        .andWhere('news.status = :status', { status: NewsStatus.PUBLISHED })
+        .getOne();
+
+      if (!article) {
+        throw new NotFoundException(`News article with slug '${slug}' in locale '${locale}' not found.`);
+      }
+
+      // BƯỚC 2: Lấy lại bài viết đó nhưng SELECT TOÀN BỘ Translations và Category
+      const fullNews = await this.newsRepository.createQueryBuilder('news')
+        .leftJoinAndSelect('news.translations', 'translation')
+        .leftJoinAndSelect('news.category', 'category')
+        .leftJoinAndSelect('category.translations', 'category_trans') // Lấy đa ngôn ngữ cho Category (V3.0)
+        .where('news.id = :id', { id: article.id })
+        .getOne();
+
+      // KHÔNG SỬ DỤNG FILTER NỮA ĐỂ FRONTEND NHẬN ĐƯỢC FULL BẢN ĐỒ SLUG
+      // news.translations = news.translations.filter(t => t.locale === locale); <-- XÓA DÒNG NÀY
+
+      return fullNews;
   }
 
   async update(id: number, updateNewsDto: UpdateNewsDto): Promise<News> {
